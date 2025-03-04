@@ -4,36 +4,6 @@
 
 @push('styles')
     <style>
-        .gradient-text {
-            background: linear-gradient(to right, #059669, #2563eb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .btn-gradient {
-            background: linear-gradient(to right, #4ade80, #3b82f6);
-            border: none;
-            color: white;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            z-index: 1;
-            cursor: pointer;
-        }
-
-        .btn-gradient a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .btn-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-gradient:hover a {
-            color: black;
-        }
-
         .action-icons {
             display: flex;
             justify-content: center;
@@ -92,16 +62,6 @@
             background-color: #f3f4f6;
         }
 
-        .page-item.active .page-link {
-            background-color: #2563eb;
-            border-color: #2563eb;
-        }
-
-        .page-item.disabled .page-link {
-            color: #9ca3af;
-            background-color: #ffffff;
-            border-color: #e5e7eb;
-        }
     </style>
 @endpush
 
@@ -111,7 +71,7 @@
         <hr>
         <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center">
             <a href="{{ route('dosen.jadwal.index') }}">
-                <i class="bi bi-plus-lg me-2"></i> Masukkan Jadwal Bimbingan
+                <i class="bi bi-plus-lg me-2"></i> Jadwal Bimbingan
             </a>
         </button>
 
@@ -121,13 +81,13 @@
                     <li class="nav-item" role="presentation">
                         <a href="{{ route('dosen.persetujuan', ['tab' => 'usulan', 'per_page' => request('per_page', 10)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'usulan' ? 'active' : '' }}">
-                            Usulan Bimbingan
+                            Usulan
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
                         <a href="{{ route('dosen.persetujuan', ['tab' => 'jadwal', 'per_page' => request('per_page', 10)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'jadwal' ? 'active' : '' }}">
-                            Daftar Jadwal
+                            Jadwal
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">

@@ -547,6 +547,286 @@
         .info-box .btn-connect:hover {
             background-color: #1557b0;
         }
+
+        .guide-box {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 25px;
+            animation: slideUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+            overflow: hidden;
+            position: relative;
+            }
+            
+            @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            }
+            
+        .card-header {
+            background: linear-gradient(-135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            }
+            
+        .card-header:before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.05),
+                rgba(255, 255, 255, 0.05) 10px,
+                rgba(255, 255, 255, 0.02) 10px,
+                rgba(255, 255, 255, 0.02) 20px
+            );
+            transform: rotate(30deg);
+            z-index: 0;
+            }
+            
+        .card-header h5 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            position: relative;
+            z-index: 1;
+            }
+            
+        .card-header i {
+            font-size: 24px;
+            margin-right: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            height: 40px;
+            width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            position: relative;
+            z-index: 1;
+            }
+            
+        .card-body {
+            padding: 30px;
+            position: relative;
+            }
+            
+            .card-body:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 40%;
+            background: url('/api/placeholder/500/500') no-repeat center center;
+            background-size: cover;
+            opacity: 0.03;
+            z-index: 0;
+            }
+            
+            .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -15px;
+            position: relative;
+            z-index: 1;
+            }
+            
+            .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding: 0 15px;
+            }
+            
+            h6 {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: var(--dark);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-left: 15px;
+            }
+            
+            h6:before {
+            content: '';
+            position: absolute;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--primary);
+            border-radius: 10px;
+            }
+            
+            .guide-steps {
+            counter-reset: step-counter;
+            list-style-type: none;
+            margin: 0;
+            padding: 0 0 0 15px;
+            }
+            
+            .guide-steps li {
+            position: relative;
+            margin-bottom: 18px;
+            padding-left: 40px;
+            padding-bottom: 5px;
+            transition: all 0.3s;
+            }
+            
+            .guide-steps li:hover {
+            transform: translateX(5px);
+            }
+            
+            .guide-steps li:before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: -2px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.3);
+            }
+            
+            .guide-steps li:after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 28px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(67, 97, 238, 0.3);
+            }
+            
+            .guide-steps li:last-child:after {
+            display: none;
+            }
+            
+            .guide-info {
+            counter-reset: step-counter;
+            list-style-type: none;
+            margin: 0;
+            padding: 0 0 0 15px;
+            }
+            
+            .guide-info li {
+            position: relative;
+            margin-bottom: 18px;
+            padding-left: 40px;
+            padding-bottom: 5px;
+            transition: all 0.3s;
+            }
+        
+            .guide-info li:hover {
+            transform: translateX(5px);
+            }
+            
+            .guide-info li:before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: -2px;
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(67, 97, 238, 0.3);
+            }
+            
+            .guide-info li:after {
+            content: '';
+            position: absolute;
+            left: 14px;
+            top: 28px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(67, 97, 238, 0.3);
+            }
+
+            .guide-info li:last-child:after {
+            display: none;
+            }
+            
+            .text-end {
+            text-align: right;
+            margin-top: 30px;
+            position: relative;
+            z-index: 1;
+            }
+            
+            #hideGuide {
+            padding: 8px 18px;
+            background: transparent;
+            color: var(--dark);
+            border: 2px solid #dee2e6;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            }
+            
+            #hideGuide:hover {
+            background: var(--light);
+            border-color: #ced4da;
+            transform: translateY(-2px);
+            }
+            
+            #hideGuide i {
+            margin-left: 8px;
+            font-size: 12px;
+            }
+            
+            @media (max-width: 768px) {
+            .col-md-6 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 30px;
+            }
+            
+            .col-md-6:last-child {
+                margin-bottom: 0;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+        }
+    
     </style>
 @endpush
 
@@ -561,18 +841,54 @@
     </button>
     
     @if(!$isConnected)
-        <div class="info-box">
-            <p class="mb-2">Untuk menggunakan fitur ini, Anda perlu memberikan izin akses ke Google Calendar dengan email: <strong>{{ $email }}</strong></p>
-            <a href="{{ route('dosen.google.connect') }}" class="btn btn-connect">
-                <i class="fas fa-calendar-plus"></i>
-                Hubungkan dengan Google Calendar
-            </a>
-        </div>
+    <div class="info-box">
+        <p class="mb-2">Untuk menggunakan fitur ini, Anda perlu memberikan izin akses ke Google Calendar dengan email: <strong>{{ $email }}</strong></p>
+        <a href="{{ route('dosen.google.connect') }}" class="btn btn-connect">
+            <i class="fas fa-calendar-plus"></i>
+            Hubungkan dengan Google Calendar
+        </a>
+    </div>
     @else
-        <div class="calendar-container">
-            <div id="calendar" class="w-100"></div>
+    <!-- Tambahkan Kotak Panduan Pengguna di sini -->
+    <div class="guide-box">
+        <div class="card-header">
+          <i class="fas fa-info-circle"></i>
+          <h5>Panduan Penggunaan Kalender</h5>
         </div>
-    @endif
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6>Cara Menambahkan Jadwal</h6>
+              <ol class="guide-steps">
+                <li>Klik pada tanggal yang diinginkan di kalender</li>
+                <li>Masukkan waktu mulai dan waktu selesai bimbingan</li>
+                <li>Tambahkan catatan jika diperlukan</li>
+                <li>Klik tombol "Simpan Jadwal"</li>
+              </ol>
+            </div>
+            <div class="col-md-6">
+              <h6>Informasi Penting</h6>
+              <ul class="guide-info">
+                <li>Jadwal hanya dapat dibuat pada hari kerja (Senin-Jumat)</li>
+                <li>Jam operasional bimbingan: 08:00 - 18:00</li>
+                <li>Durasi minimum bimbingan adalah 30 menit</li>
+                <li>Klik pada jadwal untuk melihat detail atau menghapusnya</li>
+              </ul>
+            </div>
+          </div>
+          <div class="text-end">
+            <button id="hideGuide">
+              Sembunyikan Panduan
+              <i class="fas fa-chevron-up"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    
+    <div class="calendar-container">
+        <div id="calendar" class="w-100"></div>
+    </div>
+@endif
 </div>
 
 <!-- Modal Tambah Jadwal -->
@@ -622,437 +938,535 @@
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.10/locales/id.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    if (!csrfToken) {
-        console.error('CSRF token tidak ditemukan');
-        return;
-    }
-
-    let calendar;
-    let selectedDate = null;
-
-    const calendarEl = document.getElementById('calendar');
-    if (!calendarEl) {
-        console.error('Elemen kalender tidak ditemukan');
-        return;
-    }
-
-    function formatDateTime(date) {
-        return moment(date).format('DD MMM YYYY HH:mm');
-    }
-
-    const tampilkanPesan = (icon, text) => {
-        Swal.fire({
-            icon: icon,
-            text: text,
-            confirmButtonColor: '#1a73e8'
-        });
-    };
-
-    calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        views: {
-            dayGridMonth: {
-                titleFormat: { year: 'numeric', month: 'long' }
-            },
-            timeGridWeek: {
-                titleFormat: { year: 'numeric', month: 'long', day: '2-digit' }
-            },
-            timeGridDay: {
-                titleFormat: { year: 'numeric', month: 'long', day: '2-digit' }
-            }
-        },
-        firstDay: 1,
-        locale: 'id',
-        buttonIcons: true,
-        navLinks: true,
-        editable: true,
-        dayMaxEvents: true,
-        selectable: true,
-        selectMirror: true,
-        nowIndicator: true,
-        height: '800px',
-        slotMinTime: '08:00:00',
-        slotMaxTime: '18:00:00',
-        allDaySlot: false,
-        slotDuration: '00:30:00',
-        businessHours: {
-            daysOfWeek: [1, 2, 3, 4, 5],
-            startTime: '08:00',
-            endTime: '18:00',
-        },
-
-        eventDidMount: function(info) {
-            const eventEl = info.el;
-            const event = info.event;
-            
-            if (event.classNames.includes('external-event')) {
-                eventEl.style.opacity = '0.7';
-            }
-        },
-        
-        dateClick: function(info) {
-            const hari = info.date.getDay();
-            if (hari === 0 || hari === 6) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Tidak Tersedia',
-                    text: 'Tidak dapat membuat jadwal di hari Sabtu atau Minggu',
-                    confirmButtonColor: '#1a73e8'
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            console.error('CSRF token tidak ditemukan');
+            tampilkanPesan('error', 'Terjadi kesalahan sistem. Silakan muat ulang halaman.');
+            return;
+        }
+    
+        let calendar;
+        let selectedDate = null;
+    
+        const calendarEl = document.getElementById('calendar');
+        if (!calendarEl) {
+            console.error('Elemen kalender tidak ditemukan');
+            return;
+        }
+    
+        function formatDateTime(date) {
+            return moment(date).format('DD MMM YYYY HH:mm');
+        }
+    
+        const tampilkanPesan = (icon, text) => {
+            Swal.fire({
+                icon: icon,
+                text: text,
+                confirmButtonColor: '#1a73e8'
+            });
+        };
+    
+        // Tambahkan tombol untuk menampilkan kembali panduan
+        function setupShowGuideButton() {
+            // Cek apakah tombol sudah ada untuk menghindari duplikasi
+            if (!document.getElementById('showGuideButton')) {
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'show-guide-button-container';
+                buttonContainer.style.cssText = 'position: fixed; right: 20px; bottom: 20px; z-index: 1000;';
+                
+                const showGuideButton = document.createElement('button');
+                showGuideButton.id = 'showGuideButton';
+                showGuideButton.className = 'btn btn-primary btn-sm';
+                showGuideButton.innerHTML = '<i class="fas fa-question-circle"></i> Tampilkan Panduan';
+                showGuideButton.style.cssText = 'box-shadow: 0 2px 5px rgba(0,0,0,0.2); display: none;';
+                
+                buttonContainer.appendChild(showGuideButton);
+                document.body.appendChild(buttonContainer);
+                
+                showGuideButton.addEventListener('click', function() {
+                    const guideBox = document.querySelector('.guide-box');
+                    if (guideBox) {
+                        // Tampilkan panduan dengan animasi
+                        guideBox.style.display = 'block';
+                        guideBox.style.opacity = '0';
+                        guideBox.style.transform = 'translateY(-10px)';
+                        
+                        // Trigger reflow
+                        void guideBox.offsetWidth;
+                        
+                        // Animasi fade in
+                        guideBox.style.animation = 'fadeIn 0.3s ease-out forwards';
+                        
+                        // Sembunyikan tombol tampilkan panduan
+                        showGuideButton.style.display = 'none';
+                        
+                        // Hapus preferensi tersembunyi dari localStorage
+                        localStorage.removeItem('calendarGuideHidden');
+                    }
                 });
-                return;
+                
+                // Tambahkan animasi fadeIn ke stylesheet
+                if (!document.getElementById('calendarAnimations')) {
+                    const style = document.createElement('style');
+                    style.id = 'calendarAnimations';
+                    style.textContent = `
+                        @keyframes fadeOut {
+                            from {
+                                opacity: 1;
+                                transform: translateY(0);
+                            }
+                            to {
+                                opacity: 0;
+                                transform: translateY(-10px);
+                            }
+                        }
+                        @keyframes fadeIn {
+                            from {
+                                opacity: 0;
+                                transform: translateY(-10px);
+                            }
+                            to {
+                                opacity: 1;
+                                transform: translateY(0);
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
             }
-
-            selectedDate = info.date;
-            const modal = new bootstrap.Modal(document.getElementById('eventModal'));
-            modal.show();
-        },
-
-        eventClassNames: function(arg) {
-            return ['fc-event-' + arg.event.extendedProps.jenis];
-        },
-
-        eventContent: function(arg) {
-            return {
-                html: `
-                    <div class="fc-content">
-                        <div class="fc-title">${arg.event.title}</div>
-                        ${arg.event.extendedProps.status ? 
-                            `<div class="fc-status small">${arg.event.extendedProps.status}</div>` : 
-                            ''}
-                    </div>
-                `
-            };
-        },
-
-        eventClick: function(info) {
-            if (info.event.classNames.includes('external-event')) {
-                Swal.fire({
-                    title: info.event.title,
+        }
+    
+        // Handle tutorial guide box
+        document.getElementById('hideGuide')?.addEventListener('click', function() {
+            const guideBox = document.querySelector('.guide-box');
+            if (guideBox) {
+                guideBox.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => {
+                    guideBox.style.display = 'none';
+                    
+                    // Tampilkan tombol "Tampilkan Panduan"
+                    const showGuideButton = document.getElementById('showGuideButton');
+                    if (showGuideButton) {
+                        showGuideButton.style.display = 'block';
+                    }
+                }, 300);
+                
+                // Simpan preferensi pengguna di localStorage
+                localStorage.setItem('calendarGuideHidden', 'true');
+            }
+        });
+    
+        // Setup tombol tampilkan panduan
+        setupShowGuideButton();
+    
+        // Cek apakah panduan sudah disembunyikan sebelumnya
+        if (localStorage.getItem('calendarGuideHidden') === 'true') {
+            const guideBox = document.querySelector('.guide-box');
+            if (guideBox) {
+                guideBox.style.display = 'none';
+                
+                // Tampilkan tombol "Tampilkan Panduan"
+                const showGuideButton = document.getElementById('showGuideButton');
+                if (showGuideButton) {
+                    showGuideButton.style.display = 'block';
+                }
+            }
+        }
+    
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            views: {
+                dayGridMonth: {
+                    titleFormat: { year: 'numeric', month: 'long' }
+                },
+                timeGridWeek: {
+                    titleFormat: { year: 'numeric', month: 'long', day: '2-digit' }
+                },
+                timeGridDay: {
+                    titleFormat: { year: 'numeric', month: 'long', day: '2-digit' }
+                }
+            },
+            firstDay: 1,
+            locale: 'id',
+            buttonIcons: true,
+            navLinks: true,
+            editable: true,
+            dayMaxEvents: true,
+            selectable: true,
+            selectMirror: true,
+            nowIndicator: true,
+            height: '800px',
+            slotMinTime: '08:00:00',
+            slotMaxTime: '18:00:00',
+            allDaySlot: false,
+            slotDuration: '00:30:00',
+            businessHours: {
+                daysOfWeek: [1, 2, 3, 4, 5],
+                startTime: '08:00',
+                endTime: '18:00',
+            },
+    
+            eventDidMount: function(info) {
+                const eventEl = info.el;
+                const event = info.event;
+                
+                if (event.classNames.includes('external-event')) {
+                    eventEl.style.opacity = '0.7';
+                }
+            },
+            
+            dateClick: function(info) {
+                const hari = info.date.getDay();
+                if (hari === 0 || hari === 6) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tidak Tersedia',
+                        text: 'Tidak dapat membuat jadwal di hari Sabtu atau Minggu',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                    return;
+                }
+    
+                selectedDate = info.date;
+                const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+                modal.show();
+            },
+    
+            eventClassNames: function(arg) {
+                return ['fc-event-' + arg.event.extendedProps.jenis];
+            },
+    
+            eventContent: function(arg) {
+                return {
                     html: `
-                        <div class="text-center">
-                            <p><strong>Waktu:</strong> ${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</p>
-                            ${info.event.extendedProps.description ? `<p><strong>Deskripsi:</strong> ${info.event.extendedProps.description}</p>` : ''}
+                        <div class="fc-content">
+                            <div class="fc-title">${arg.event.title}</div>
+                            ${arg.event.extendedProps.status ? 
+                                `<div class="fc-status small">${arg.event.extendedProps.status}</div>` : 
+                                ''}
+                        </div>
+                    `
+                };
+            },
+    
+            eventClick: function(info) {
+                if (info.event.classNames.includes('external-event')) {
+                    Swal.fire({
+                        title: info.event.title,
+                        html: `
+                            <div class="text-center">
+                                <p><strong>Waktu:</strong> ${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</p>
+                                ${info.event.extendedProps.description ? `<p><strong>Deskripsi:</strong> ${info.event.extendedProps.description}</p>` : ''}
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                    return;
+                }
+    
+                // Parse description untuk memisahkan informasi
+                const description = info.event.extendedProps.description || '';
+                const descriptionLines = description.split('\n').filter(line => line.trim());
+                
+                // Membuat tampilan yang lebih terstruktur
+                const details = descriptionLines.reduce((acc, line) => {
+                    if (line.startsWith('Status:')) {
+                        acc.status = line.replace('Status:', '').trim();
+                    } else if (line.startsWith('Catatan:')) {
+                        acc.catatan = line.replace('Catatan:', '').trim();
+                    } else if (line.startsWith('Kapasitas:')) {
+                        acc.kapasitas = line.replace('Kapasitas:', '').trim();
+                    }
+                    return acc;
+                }, {});
+    
+                Swal.fire({
+                    title: 'Detail Jadwal Bimbingan',
+                    html: `
+                        <div class="detail-container">
+                            <div class="detail-item">
+                                <strong>Tanggal:</strong>
+                                <span>${moment(info.event.start).format('DD MMMM YYYY')}</span>
+                            </div>
+                            <div class="detail-item">
+                                <strong>Waktu:</strong>
+                                <span>${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</span>
+                            </div>
+                            ${details.kapasitas ? `
+                                <div class="detail-item">
+                                    <strong>Kapasitas:</strong>
+                                    <span>${details.kapasitas || ''}</span>
+                                </div>
+                            ` : ''}
+                            ${details.catatan ? `
+                                <div class="detail-item">
+                                    <strong>Catatan:</strong>
+                                    <span>${details.catatan}</span>
+                                </div>
+                            ` : ''}
+                            <div class="detail-item">
+                                <strong>Status:</strong>
+                                <span>${details.status || 'Tersedia'}</span>
+                            </div>
                         </div>
                     `,
                     icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Hapus Jadwal',
+                    cancelButtonText: 'Tutup',
+                    showCloseButton: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Konfirmasi penghapusan
+                        Swal.fire({
+                            title: 'Hapus Jadwal?',
+                            text: "Jadwal yang dihapus tidak dapat dikembalikan",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#dc3545',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Ya, hapus!',
+                            cancelButtonText: 'Batal'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                hapusJadwal(info.event.id);
+                            }
+                        });
+                    }
+                });
+            },
+    
+            events: function(fetchInfo, successCallback, failureCallback) {
+                fetch('dosen/google/events')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(events => {
+                        successCallback(events);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        failureCallback(error);
+                        tampilkanPesan('error', 'Gagal memuat jadwal');
+                    });
+            }
+        });
+    
+        calendar.render();
+    
+        // Handler Simpan Jadwal
+        document.getElementById('saveEvent')?.addEventListener('click', async function() {
+            try {
+                const description = document.getElementById('eventDescription').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
+    
+                if (!startTime || !endTime) {
+                    throw new Error('Mohon isi waktu mulai dan selesai');
+                }
+    
+                // Buat objek tanggal dari selectedDate
+                const startDateTime = new Date(selectedDate);
+                const endDateTime = new Date(selectedDate);
+                
+                // Parse waktu
+                const [startHour, startMinute] = startTime.split(':');
+                const [endHour, endMinute] = endTime.split(':');
+                
+                // Set jam dan menit
+                startDateTime.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+                endDateTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+                
+                // Validasi waktu selesai harus setelah waktu mulai
+                if (endDateTime <= startDateTime) {
+                    throw new Error('Waktu selesai harus setelah waktu mulai');
+                }
+    
+                // Validasi jam kerja (08:00 - 18:00)
+                const startHourInt = parseInt(startHour);
+                if (startHourInt < 8 || startHourInt >= 18) {
+                    throw new Error('Jadwal harus dalam jam kerja (08:00 - 18:00)');
+                }
+    
+                // Hitung durasi dalam menit
+                const durationMs = endDateTime.getTime() - startDateTime.getTime();
+                const durationMinutes = Math.floor(durationMs / (1000 * 60));
+    
+                // Validasi durasi minimum (30 menit)
+                if (durationMinutes < 30) {
+                    throw new Error(`Durasi minimum bimbingan adalah 30 menit. Durasi saat ini: ${durationMinutes} menit`);
+                }
+    
+                // Tampilkan loading
+                Swal.fire({
+                    title: 'Menyimpan Jadwal',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+    
+                const requestData = {
+                    start: startDateTime.toISOString(),
+                    end: endDateTime.toISOString(),
+                    description: description,
+                };
+    
+                const response = await fetch('/masukkanjadwal/store', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+    
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Terjadi kesalahan pada server');
+                }
+                
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
+                    document.getElementById('eventForm').reset();
+                    calendar.refetchEvents();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Jadwal berhasil ditambahkan',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                } else {
+                    throw new Error(result.message || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: error.message || 'Gagal menambahkan jadwal',
                     confirmButtonColor: '#1a73e8'
                 });
-                return;
             }
-
-            // Parse description untuk memisahkan informasi
-            const description = info.event.extendedProps.description || '';
-            const descriptionLines = description.split('\n').filter(line => line.trim());
-            
-            // Membuat tampilan yang lebih terstruktur
-            const details = descriptionLines.reduce((acc, line) => {
-                if (line.startsWith('Status:')) {
-                    acc.status = line.replace('Status:', '').trim();
-                } else if (line.startsWith('Catatan:')) {
-                    acc.catatan = line.replace('Catatan:', '').trim();
-                } else if (line.startsWith('Kapasitas:')) {
-                    acc.kapasitas = line.replace('Kapasitas:', '').trim();
-                }
-                return acc;
-            }, {});
-
-            Swal.fire({
-                title: 'Detail Jadwal Bimbingan',
-                html: `
-                    <div class="detail-container">
-                        <div class="detail-item">
-                            <strong>Tanggal:</strong>
-                            <span>${moment(info.event.start).format('DD MMMM YYYY')}</span>
-                        </div>
-                        <div class="detail-item">
-                            <strong>Waktu:</strong>
-                            <span>${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</span>
-                        </div>
-                        ${details.kapasitas ? `
-                            <div class="detail-item">
-                                <strong>Kapasitas:</strong>
-                                <span>${details.kapasitas || ''}</span>
-                            </div>
-                        ` : ''}
-                        ${details.catatan ? `
-                            <div class="detail-item">
-                                <strong>Catatan:</strong>
-                                <span>${details.catatan}</span>
-                            </div>
-                        ` : ''}
-                        <div class="detail-item">
-                            <strong>Status:</strong>
-                            <span>${details.status || 'Tersedia'}</span>
-                        </div>
-                    </div>
-                `,
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Hapus Jadwal',
-                cancelButtonText: 'Tutup',
-                showCloseButton: true,
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Konfirmasi penghapusan
-                    Swal.fire({
-                        title: 'Hapus Jadwal?',
-                        text: "Jadwal yang dihapus tidak dapat dikembalikan",
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#dc3545',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Ya, hapus!',
-                        cancelButtonText: 'Batal'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            hapusJadwal(info.event.id);
-                        }
-                    });
-                }
-            });
-        },
-
-        events: function(fetchInfo, successCallback, failureCallback) {
-            fetch('dosen/google/events')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
+        });
+    
+        // Fungsi Hapus Jadwal
+        async function hapusJadwal(eventId) {
+            try {
+                // Tampilkan loading
+                Swal.fire({
+                    title: 'Menghapus Jadwal',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
                     }
-                    return response.json();
-                })
-                .then(events => {
-                    successCallback(events);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    failureCallback(error);
-                    tampilkanPesan('error', 'Gagal memuat jadwal');
                 });
+    
+                const response = await fetch(`/masukkanjadwal/${eventId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+    
+                const result = await response.json();
+                
+                if (result.success) {
+                    calendar.refetchEvents();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Jadwal berhasil dihapus dari sistem dan Google Calendar',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                } else {
+                    throw new Error(result.message || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: error.message || 'Gagal menghapus jadwal',
+                    confirmButtonColor: '#1a73e8'
+                });
+            }
         }
-    });
-
-    calendar.render();
-
-    // Handler Simpan Jadwal
-    document.getElementById('saveEvent')?.addEventListener('click', async function() {
-        try {
-            const description = document.getElementById('eventDescription').value;
+    
+        // Reset form when modal is shown
+        document.getElementById('eventModal')?.addEventListener('show.bs.modal', function () {
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
+            document.getElementById('eventDescription').value = '';
+            document.getElementById('timeValidationFeedback').innerHTML = '';
+            document.getElementById('saveEvent').disabled = false;
+        });
+    
+        // Add time validation events
+        document.getElementById('startTime')?.addEventListener('change', validateTimes);
+        document.getElementById('endTime')?.addEventListener('change', validateTimes);
+    
+        // Function to validate time inputs
+        function validateTimes() {
             const startTime = document.getElementById('startTime').value;
             const endTime = document.getElementById('endTime').value;
-
-            if (!startTime || !endTime) {
-                throw new Error('Mohon isi waktu mulai dan selesai');
-            }
-
-            // Buat objek tanggal dari selectedDate
-            const startDateTime = new Date(selectedDate);
-            const endDateTime = new Date(selectedDate);
-            
-            // Parse waktu
-            const [startHour, startMinute] = startTime.split(':');
-            const [endHour, endMinute] = endTime.split(':');
-            
-            // Set jam dan menit
-            startDateTime.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-            endDateTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-
-            // Debug log sebelum mengirim request
-            console.log('Selected Date:', selectedDate);
-            console.log('Start DateTime to send:', startDateTime.toISOString());
-            console.log('End DateTime to send:', endDateTime.toISOString());
-            
-            // Validasi waktu selesai harus setelah waktu mulai
-            if (endDateTime <= startDateTime) {
-                throw new Error('Waktu selesai harus setelah waktu mulai');
-            }
-
-            // Validasi jam kerja (08:00 - 18:00)
-            const startHourInt = parseInt(startHour);
-            if (startHourInt < 8 || startHourInt >= 18) {
-                throw new Error('Jadwal harus dalam jam kerja (08:00 - 18:00)');
-            }
-
-            // Hitung durasi dalam menit
-            const durationMs = endDateTime.getTime() - startDateTime.getTime();
-            const durationMinutes = Math.floor(durationMs / (1000 * 60));
-
-            // Debug log durasi
-            console.log('Duration (minutes):', durationMinutes);
-
-            // Validasi durasi minimum (30 menit)
-            if (durationMinutes < 30) {
-                throw new Error(`Durasi minimum bimbingan adalah 30 menit. Durasi saat ini: ${durationMinutes} menit`);
-            }
-
-            // Tampilkan loading
-            Swal.fire({
-                title: 'Menyimpan Jadwal',
-                text: 'Mohon tunggu...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            // Log data yang akan dikirim
-            const requestData = {
-                start: startDateTime.toISOString(),
-                end: endDateTime.toISOString(),
-                description: description,
-            };
-            console.log('Request Data:', requestData);
-
-            const response = await fetch('/masukkanjadwal/store', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            // Log response status dan headers
-            console.log('Response Status:', response.status);
-            console.log('Response Headers:', response.headers);
-
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.message || 'Terjadi kesalahan pada server');
-            }
-            
-            if (result.success) {
-                bootstrap.Modal.getInstance(document.getElementById('eventModal')).hide();
-                document.getElementById('eventForm').reset();
-                calendar.refetchEvents();
+            const saveButton = document.getElementById('saveEvent');
+            const feedbackEl = document.getElementById('timeValidationFeedback');
+    
+            // Reset feedback
+            feedbackEl.innerHTML = '';
+            saveButton.disabled = false;
+    
+            if (startTime && endTime) {
+                const [startHour, startMinute] = startTime.split(':');
+                const [endHour, endMinute] = endTime.split(':');
                 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Jadwal berhasil ditambahkan',
-                    confirmButtonColor: '#1a73e8'
-                });
-            } else {
-                throw new Error(result.message || 'Terjadi kesalahan');
+                const start = new Date();
+                start.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+                
+                const end = new Date();
+                end.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+    
+                const durationMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
+                
+                let errorMessage = '';
+                
+                if (end <= start) {
+                    errorMessage = 'Waktu selesai harus lebih besar dari waktu mulai';
+                } else if (durationMinutes < 30) {
+                    errorMessage = `Durasi minimum bimbingan adalah 30 menit. Durasi saat ini: ${durationMinutes} menit`;
+                } else if (parseInt(startHour) < 8 || parseInt(startHour) >= 18 || 
+                        parseInt(endHour) < 8 || parseInt(endHour) > 18) {
+                    errorMessage = 'Jadwal harus dalam jam kerja (08:00 - 18:00)';
+                }
+    
+                if (errorMessage) {
+                    feedbackEl.innerHTML = `<div class="text-danger small mt-2">${errorMessage}</div>`;
+                    saveButton.disabled = true;
+                } else {
+                    feedbackEl.innerHTML = `<div class="text-success small mt-2">Durasi bimbingan: ${durationMinutes} menit</div>`;
+                    saveButton.disabled = false;
+                }
             }
-        } catch (error) {
-            console.error('Error:', error);
-            console.log('Gagal menambahkan jadwal :', error.message);
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: 'Gagal menambahkan jadwal',
-                confirmButtonColor: '#1a73e8'
-            });
         }
     });
-
-    // Fungsi Hapus Jadwal
-    async function hapusJadwal(eventId) {
-        try {
-            // Tampilkan loading
-            Swal.fire({
-                title: 'Menghapus Jadwal',
-                text: 'Mohon tunggu...',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-
-            const response = await fetch(`/masukkanjadwal/${eventId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                }
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                calendar.refetchEvents();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Jadwal berhasil dihapus dari sistem dan Google Calendar',
-                    confirmButtonColor: '#1a73e8'
-                });
-            } else {
-                throw new Error(result.message || 'Terjadi kesalahan');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            console.log('Gagal menghapus jadwal: +', error.message);
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: 'Gagal menghapus jadwal',
-                confirmButtonColor: '#1a73e8'
-            });
-        }
-    }
-
-    document.getElementById('eventModal').addEventListener('show.bs.modal', function () {
-        document.getElementById('startTime').value = '';
-        document.getElementById('endTime').value = '';
-        document.getElementById('eventDescription').value = '';
-    });
-    document.getElementById('startTime')?.addEventListener('change', validateTimes);
-    document.getElementById('endTime')?.addEventListener('change', validateTimes);
-
-    function validateTimes() {
-        const startTime = document.getElementById('startTime').value;
-        const endTime = document.getElementById('endTime').value;
-        const saveButton = document.getElementById('saveEvent');
-        const feedbackEl = document.getElementById('timeValidationFeedback');
-
-        if (startTime && endTime) {
-            const [startHour, startMinute] = startTime.split(':');
-            const [endHour, endMinute] = endTime.split(':');
-            
-            const start = new Date();
-            start.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
-            
-            const end = new Date();
-            end.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-
-            const durationMinutes = Math.floor((end.getTime() - start.getTime()) / (1000 * 60));
-            
-            console.log('Real-time validation - Duration:', durationMinutes);
-
-            let errorMessage = '';
-            
-            if (end <= start) {
-                errorMessage = 'Waktu selesai harus lebih besar dari waktu mulai';
-            } else if (durationMinutes < 30) {
-                errorMessage = `Durasi minimum bimbingan adalah 30 menit. Durasi saat ini: ${durationMinutes} menit`;
-            } else if (parseInt(startHour) < 8 || parseInt(startHour) >= 18 || 
-                    parseInt(endHour) < 8 || parseInt(endHour) > 18) {
-                errorMessage = 'Jadwal harus dalam jam kerja (08:00 - 18:00)';
-            }
-
-            if (errorMessage) {
-                feedbackEl.innerHTML = `<div class="text-danger small mt-2">${errorMessage}</div>`;
-                saveButton.disabled = true;
-            } else {
-                feedbackEl.innerHTML = `<div class="text-success small mt-2">Durasi bimbingan: ${durationMinutes} menit</div>`;
-                saveButton.disabled = false;
-            }
-        }
-    }
-
-});
-</script>
+    </script>
 @endpush

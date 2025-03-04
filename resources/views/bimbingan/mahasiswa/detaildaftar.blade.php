@@ -5,35 +5,6 @@
 
 @push('styles')
 <style>
-    .gradient-text {
-        background: linear-gradient(to right, #059669, #2563eb);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    
-    .btn-gradient {
-        background: linear-gradient(to right, #4ade80, #3b82f6);
-        border: none;
-        color: white;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        position: relative; 
-        z-index: 1; 
-        cursor: pointer; 
-    }
-    
-    .btn-gradient a {
-        color: white;
-        text-decoration: none;
-    }
-    
-    .btn-gradient:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-gradient:hover a {
-        color: black;
-    }
 
     form .form-label {
         font-weight: bold;

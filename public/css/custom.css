@@ -69,3 +69,16 @@
     margin: 8px 0;
     border-top: 1px solid #e5e7eb;
 }
+
+
+/* page item */
+.page-item.active .page-link {
+    background-color: #3674B5;
+    border-color: #2563eb;
+}
+
+.page-item.disabled .page-link {
+    color: #9ca3af;
+    background-color: #ffffff;
+    border-color: #e5e7eb;
+}

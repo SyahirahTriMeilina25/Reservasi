@@ -107,7 +107,7 @@
 
                 <div class="text-end">
                     <button type="submit" class="btn btn-gradient">
-                        <i class="fas fa-paper-plane me-2"></i>Usulkan
+                        Usulkan
                     </button>
                 </div>
             </form>
