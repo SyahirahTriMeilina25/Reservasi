@@ -48,6 +48,7 @@
 @endpush
 
 @section('content')
+<div id="dosenData" data-jenis-bimbingan="{{ json_encode($jenisBimbinganPerDosen ?? []) }}"></div>
     <div class="container mt-5">
         <h1 class="mb-2 gradient-text fw-bold">Pilih Jadwal Bimbingan</h1>
         <hr>
@@ -96,7 +97,7 @@
                     <select class="form-select" id="pilihJadwal" name="jadwal_id" required>
                         <option value="" selected disabled>- Pilih Dosen Terlebih Dahulu -</option>
                     </select>
-                    <small class="text-muted">Menampilkan jadwal yang masih tersedia</small>
+                    {{-- <small class="text-muted">Menampilkan jadwal yang masih tersedia</small> --}}
                 </div>
 
                 <div class="mb-3">
@@ -117,89 +118,304 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Ambil elemen yang diperlukan
-            const formBimbingan = document.getElementById('formBimbingan');
-            const dosenSelect = document.getElementById('pilihDosen');
-            const jadwalSelect = document.getElementById('pilihJadwal');
-            const jenisBimbinganSelect = document.getElementById('jenisBimbingan');
-
-            // Fungsi untuk mengubah format tanggal ke bahasa Indonesia
-            const formatTanggalIndonesia = (tanggal) => {
-                const namaBulan = [
-                    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-                ];
-                const namaHari = [
-                    'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
-                ];
-
-                const date = new Date(tanggal);
-                const hari = namaHari[date.getDay()];
-                const tanggalNum = date.getDate();
-                const bulan = namaBulan[date.getMonth()];
-                const tahun = date.getFullYear();
-
-                return `${hari}, ${tanggalNum} ${bulan} ${tahun}`;
-            };
-
-            // Fungsi untuk mengubah format waktu ke bahasa Indonesia
-            const formatWaktuIndonesia = (waktu) => {
-                return waktu.replace(/AM/gi, 'WIB').replace(/PM/gi, 'WIB');
-            };
-
-            // Fungsi untuk menampilkan pesan dengan SweetAlert2
-            const tampilkanPesan = (icon, title, text) => {
-                Swal.fire({
-                    icon: icon,
-                    title: title,
-                    text: text,
-                    confirmButtonColor: '#1a73e8'
-                });
-            };
-
-            // Hanya jalankan kode jika form bimbingan ada
-            if (formBimbingan) {
-                // Event listener untuk form submit
-                formBimbingan.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-
-                    try {
-                        // Validasi form
-                        const formData = new FormData(formBimbingan);
-                        const jadwalId = formData.get('jadwal_id');
-                        const jenisBimbingan = formData.get('jenis_bimbingan');
-
-                        // Cek ketersediaan jadwal
-                        try {
-                            const checkResponse = await fetch(
-                                `/pilihjadwal/check?jadwal_id=${jadwalId}&jenis_bimbingan=${jenisBimbingan}`, {
-                                    headers: {
-                                        'X-CSRF-TOKEN': document.querySelector(
-                                            'meta[name="csrf-token"]').content,
-                                        'Accept': 'application/json'
-                                    }
+    <script>document.addEventListener('DOMContentLoaded', function() {
+        // Ambil elemen yang diperlukan
+        const formBimbingan = document.getElementById('formBimbingan');
+        const dosenSelect = document.getElementById('pilihDosen');
+        const jadwalSelect = document.getElementById('pilihJadwal');
+        const jenisBimbinganSelect = document.getElementById('jenisBimbingan');
+        
+        // Ambil data jenis bimbingan per dosen dari elemen tersembunyi jika ada
+        let jenisBimbinganPerDosen = {};
+        const dosenDataElement = document.getElementById('dosenData');
+        if (dosenDataElement && dosenDataElement.dataset.jenisBimbingan) {
+            try {
+                jenisBimbinganPerDosen = JSON.parse(dosenDataElement.dataset.jenisBimbingan);
+                console.log('Data jenis bimbingan per dosen dari server:', jenisBimbinganPerDosen);
+            } catch (e) {
+                console.error('Error parsing jenis bimbingan data:', e);
+            }
+        }
+    
+        // Fungsi untuk mengubah format tanggal ke bahasa Indonesia
+        const formatTanggalIndonesia = (tanggal) => {
+            const namaBulan = [
+                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            const namaHari = [
+                'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
+            ];
+    
+            const date = new Date(tanggal);
+            const hari = namaHari[date.getDay()];
+            const tanggalNum = date.getDate();
+            const bulan = namaBulan[date.getMonth()];
+            const tahun = date.getFullYear();
+    
+            return `${hari}, ${tanggalNum} ${bulan} ${tahun}`;
+        };
+    
+        // Fungsi untuk menampilkan pesan dengan SweetAlert2
+        const tampilkanPesan = (icon, title, text) => {
+            Swal.fire({
+                icon: icon,
+                title: title,
+                text: text,
+                confirmButtonColor: '#1a73e8'
+            });
+        };
+    
+        // Mapping nama jenis bimbingan
+        const jenisOptions = {
+            'skripsi': 'Bimbingan Skripsi',
+            'kp': 'Bimbingan KP',
+            'akademik': 'Bimbingan Akademik',
+            'konsultasi': 'Konsultasi Pribadi'
+        };
+    
+        // Handler untuk perubahan dosen
+        if (dosenSelect) {
+            dosenSelect.addEventListener('change', function() {
+                const selectedDosen = this.value;
+                console.log('Dosen yang dipilih:', selectedDosen);
+                
+                // Reset jenis bimbingan dropdown
+                jenisBimbinganSelect.innerHTML = '<option value="" selected disabled>- Pilih Jenis Bimbingan -</option>';
+                
+                // Tampilkan loading state
+                jenisBimbinganSelect.innerHTML += '<option value="" disabled>Memuat data...</option>';
+                
+                // Ambil jenis bimbingan dari server dengan endpoint yang lebih spesifik
+                fetch(`/pilihjadwal/dosen/${selectedDosen}/jenis-bimbingan`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Reset dropdown setelah data diambil
+                        jenisBimbinganSelect.innerHTML = '<option value="" selected disabled>- Pilih Jenis Bimbingan -</option>';
+                        
+                        console.log('Respons API jenis bimbingan:', data);
+                        
+                        if (data.success) {
+                            // Jika berhasil mendapatkan data jenis bimbingan
+                            if (data.jenisBimbingan && data.jenisBimbingan.length > 0) {
+                                console.log('Menampilkan jenis bimbingan tersedia:', data.jenisBimbingan);
+                                
+                                // Tampilkan jenis bimbingan yang tersedia dari server
+                                data.jenisBimbingan.forEach(jenis => {
+                                    const option = document.createElement('option');
+                                    option.value = jenis;
+                                    option.textContent = jenisOptions[jenis] || jenis;
+                                    jenisBimbinganSelect.appendChild(option);
                                 });
-
-                            if (!checkResponse.ok) {
-                                throw new Error('Network response was not ok');
+                                
+                                // Jika hanya ada satu jenis bimbingan, otomatis pilih dan load jadwal
+                                if (data.jenisBimbingan.length === 1) {
+                                    console.log('Hanya satu jenis bimbingan tersedia, otomatis memilih:', data.jenisBimbingan[0]);
+                                    jenisBimbinganSelect.value = data.jenisBimbingan[0];
+                                    // Trigger event change untuk memuat jadwal
+                                    getAvailableJadwal();
+                                }
+                            } else {
+                                console.log('Tidak ada jenis bimbingan tersedia');
+                                jenisBimbinganSelect.innerHTML = '<option value="" selected disabled>Tidak ada jadwal tersedia</option>';
+                                tampilkanPesan('info', 'Informasi', 'Dosen belum menyediakan jadwal bimbingan');
                             }
-
-                            const checkResult = await checkResponse.json();
-
-                            if (!checkResult.available) {
-                                tampilkanPesan('warning', 'Tidak Dapat Mengajukan',
-                                    checkResult.message || 'Jadwal tidak tersedia');
-                                return;
+                        } else {
+                            console.log('API mengembalikan status sukses=false');
+                            jenisBimbinganSelect.innerHTML = '<option value="" selected disabled>Terjadi kesalahan</option>';
+                            tampilkanPesan('error', 'Terjadi Kesalahan', data.message || 'Tidak dapat memuat jenis bimbingan');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching jenis bimbingan:', error);
+                        // Reset dropdown jika terjadi error
+                        jenisBimbinganSelect.innerHTML = '<option value="" selected disabled>Terjadi kesalahan</option>';
+                        tampilkanPesan('error', 'Terjadi Kesalahan', 'Tidak dapat memuat jenis bimbingan. Silakan coba lagi.');
+                    });
+                
+                // Reset jadwal dropdown
+                jadwalSelect.innerHTML = '<option value="" selected disabled>- Pilih Jenis Bimbingan Terlebih Dahulu -</option>';
+            });
+        }
+    
+        // Function untuk mengambil jadwal
+        async function getAvailableJadwal() {
+            const nip = dosenSelect.value;
+            const jenisBimbingan = jenisBimbinganSelect.value;
+            
+            console.log('Mengambil jadwal untuk:', {nip, jenisBimbingan});
+    
+            if (!nip || !jenisBimbingan) {
+                jadwalSelect.innerHTML =
+                    '<option value="" selected disabled>Pilih dosen dan jenis bimbingan terlebih dahulu</option>';
+                return;
+            }
+    
+            try {
+                // Tampilkan loading state
+                jadwalSelect.innerHTML = '<option value="" selected disabled>Memuat jadwal...</option>';
+    
+                const response = await fetch(
+                    `/pilihjadwal/available?nip=${nip}&jenis_bimbingan=${jenisBimbingan}`, {
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                            'Accept': 'application/json'
+                        }
+                    });
+    
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+    
+                const result = await response.json();
+                
+                // LOG DEBUG
+                console.log('Respons API jadwal:', result);
+                
+                // Log detail struktur data untuk debugging
+                if (result.data && result.data.length > 0) {
+                    console.log('Detail struktur jadwal pertama:', JSON.stringify(result.data[0], null, 2));
+                }
+    
+                // Reset select
+                jadwalSelect.innerHTML = '<option value="" selected disabled>- Pilih Jadwal -</option>';
+    
+                if (result.status === 'success' && result.data && Array.isArray(result.data)) {
+                    if (result.data.length === 0) {
+                        jadwalSelect.innerHTML =
+                            '<option value="" disabled>Belum ada jadwal tersedia</option>';
+                        tampilkanPesan('info', 'Informasi', 'Belum ada jadwal tersedia untuk dosen dan jenis bimbingan ini');
+                        return;
+                    }
+    
+                    // Render jadwal options
+                    result.data.forEach(jadwal => {
+                        const option = document.createElement('option');
+                        option.value = jadwal.id;
+                        
+                        // Gunakan teks yang sudah diformat dari backend
+                        if (jadwal.text) {
+                            option.textContent = jadwal.text;
+                        } else {
+                            // Ekstrak tanggal dari waktu_mulai (format: YYYY-MM-DD HH:MM:SS)
+                            const tanggalStr = jadwal.waktu_mulai ? jadwal.waktu_mulai.split(' ')[0] : (jadwal.tanggal || null);
+                            const tanggalIndonesia = tanggalStr ? formatTanggalIndonesia(tanggalStr) : 'Tanggal tidak tersedia';
+                            
+                            // Format waktu dari waktu_mulai dan waktu_selesai
+                            const waktuMulai = jadwal.waktu_mulai 
+                                ? jadwal.waktu_mulai.split(' ')[1].substring(0, 5) 
+                                : (jadwal.waktu || 'N/A');
+                            
+                            const waktuSelesai = jadwal.waktu_selesai 
+                                ? jadwal.waktu_selesai.split(' ')[1].substring(0, 5) 
+                                : 'N/A';
+                            
+                            // Tambahkan informasi dosen jika tersedia
+                            let additionalInfo = '';
+                            if (jadwal.dosen_nama) {
+                                additionalInfo = ` - ${jadwal.dosen_nama}`;
                             }
-                        } catch (error) {
-                            console.error('Error checking availability:', error);
-                            tampilkanPesan('error', 'Tidak dapat memeriksa jadwal',
-                                'Silakan coba beberapa saat lagi');
+                            
+                            // Tambahkan informasi kuota jika tersedia
+                            if (jadwal.kapasitas > 0) {
+                                additionalInfo += ` | Slot: ${jadwal.sisa_kapasitas}/${jadwal.kapasitas}`;
+                            }
+                            
+                            option.textContent = `${tanggalIndonesia} | ${waktuMulai}-${waktuSelesai}${additionalInfo}`;
+                        }
+    
+                        jadwalSelect.appendChild(option);
+                    });
+                    
+                    // Jika hanya ada satu jadwal, otomatis pilih
+                    if (result.data.length === 1) {
+                        console.log('Hanya ada satu jadwal tersedia, otomatis memilih:', result.data[0].id);
+                        jadwalSelect.value = result.data[0].id;
+                    }
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                jadwalSelect.innerHTML = '<option value="" disabled>Tidak dapat memuat jadwal</option>';
+                tampilkanPesan('error', 'Tidak dapat memuat jadwal', 'Silakan muat ulang halaman dan coba kembali');
+            }
+        }
+    
+        // Tambahkan event listeners
+        if (jenisBimbinganSelect) {
+            jenisBimbinganSelect.addEventListener('change', getAvailableJadwal);
+        }
+    
+        // Handler form submit
+        if (formBimbingan) {
+            formBimbingan.addEventListener('submit', async function(e) {
+                e.preventDefault();
+    
+                try {
+                    // Validasi form
+                    const formData = new FormData(formBimbingan);
+                    const jadwalId = formData.get('jadwal_id');
+                    const jenisBimbingan = formData.get('jenis_bimbingan');
+    
+                    if (!jadwalId || !jenisBimbingan) {
+                        tampilkanPesan('warning', 'Form tidak lengkap', 'Silakan pilih jadwal dan jenis bimbingan');
+                        return;
+                    }
+    
+                    // Cek ketersediaan jadwal
+                    try {
+                        // Tampilkan loading
+                        Swal.fire({
+                            title: 'Memeriksa jadwal',
+                            text: 'Mohon tunggu...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+    
+                        const checkResponse = await fetch(`/pilihjadwal/check?jadwal_id=${jadwalId}&jenis_bimbingan=${jenisBimbingan}`, {
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                                'Accept': 'application/json'
+                            }
+                        });
+    
+                        if (!checkResponse.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+    
+                        const checkResult = await checkResponse.json();
+    
+                        if (!checkResult.available) {
+                            Swal.close();
+                            tampilkanPesan('warning', 'Tidak Dapat Mengajukan', 
+                                checkResult.message || 'Jadwal tidak tersedia');
                             return;
                         }
-
+    
+                        // Konfirmasi pengajuan
+                        const confirmResult = await Swal.fire({
+                            icon: 'question',
+                            title: 'Konfirmasi Pengajuan',
+                            text: 'Anda yakin ingin mengajukan bimbingan untuk jadwal ini?',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Ya, ajukan!',
+                            cancelButtonText: 'Batal'
+                        });
+    
+                        if (!confirmResult.isConfirmed) {
+                            return;
+                        }
+    
                         // Tampilkan loading saat mengirim data
                         Swal.fire({
                             title: 'Memproses',
@@ -209,25 +425,24 @@
                                 Swal.showLoading();
                             }
                         });
-
+    
                         // Kirim data usulan bimbingan
                         const response = await fetch(formBimbingan.action, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector(
-                                    'meta[name="csrf-token"]').content,
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify(Object.fromEntries(formData))
                         });
-
+    
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
                         }
-
+    
                         const result = await response.json();
-
+    
                         if (result.status === 'success') {
                             Swal.fire({
                                 icon: 'success',
@@ -241,95 +456,25 @@
                         } else {
                             throw new Error(result.message || 'Server error');
                         }
-
                     } catch (error) {
-                        console.error('Error submitting form:', error);
+                        console.error('Error checking availability:', error);
                         Swal.fire({
                             icon: 'error',
-                            title: 'Tidak dapat memproses permintaan',
+                            title: 'Tidak dapat memeriksa jadwal',
                             text: 'Silakan coba beberapa saat lagi',
                             confirmButtonColor: '#1a73e8'
                         });
                     }
-                });
-            }
-
-            // Handler untuk perubahan dosen dan jenis bimbingan
-            if (dosenSelect && jenisBimbinganSelect && jadwalSelect) {
-                async function getAvailableJadwal() {
-                    const nip = dosenSelect.value;
-                    const jenisBimbingan = jenisBimbinganSelect.value;
-
-                    if (!nip || !jenisBimbingan) {
-                        jadwalSelect.innerHTML =
-                            '<option value="" selected disabled>Pilih dosen dan jenis bimbingan terlebih dahulu</option>';
-                        return;
-                    }
-
-                    try {
-                        // Tampilkan loading state
-                        jadwalSelect.innerHTML = '<option value="" selected disabled>Memuat jadwal...</option>';
-
-                        const response = await fetch(
-                            `/pilihjadwal/available?nip=${nip}&jenis_bimbingan=${jenisBimbingan}`, {
-                                headers: {
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                        .content,
-                                    'Accept': 'application/json'
-                                }
-                            });
-
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-
-                        const result = await response.json();
-
-                        // Reset select
-                        jadwalSelect.innerHTML = '<option value="" selected disabled>- Pilih Jadwal -</option>';
-
-                        if (result.status === 'success' && Array.isArray(result.data)) {
-                            if (result.data.length === 0) {
-                                jadwalSelect.innerHTML =
-                                    '<option value="" disabled>Belum ada jadwal tersedia</option>';
-                                tampilkanPesan('info', 'Informasi',
-                                'Belum ada jadwal tersedia untuk dosen ini');
-                                return;
-                            }
-
-                            // Render jadwal options dengan format Indonesia
-                            result.data.forEach(jadwal => {
-                                const option = document.createElement('option');
-                                option.value = jadwal.id;
-                                const tanggalIndonesia = formatTanggalIndonesia(jadwal.tanggal);
-                                const waktuIndonesia = formatWaktuIndonesia(jadwal.waktu);
-                                option.textContent = `${tanggalIndonesia} | ${waktuIndonesia}`;
-
-                                if (jadwal.is_selected) {
-                                    option.disabled = true;
-                                    option.textContent += ' (Sudah dipilih)';
-                                } else if (jadwal.sisa_kapasitas) {
-                                    option.textContent += ` (Sisa Kuota: ${jadwal.sisa_kapasitas})`;
-                                }
-
-                                jadwalSelect.appendChild(option);
-                            });
-                        } else {
-                            throw new Error('Invalid response format');
-                        }
-
-                    } catch (error) {
-                        console.error('Error loading schedule:', error);
-                        jadwalSelect.innerHTML = '<option value="" disabled>Tidak dapat memuat jadwal</option>';
-                        tampilkanPesan('error', 'Tidak dapat memuat jadwal',
-                            'Silakan muat ulang halaman dan coba kembali');
-                    }
+                } catch (error) {
+                    console.error('Error submitting form:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Tidak dapat memproses permintaan',
+                        text: 'Silakan coba beberapa saat lagi',
+                        confirmButtonColor: '#1a73e8'
+                    });
                 }
-
-                // Tambahkan event listeners
-                dosenSelect.addEventListener('change', getAvailableJadwal);
-                jenisBimbinganSelect.addEventListener('change', getAvailableJadwal);
-            }
-        });
-    </script>
+            });
+        }
+    });</script>
 @endpush

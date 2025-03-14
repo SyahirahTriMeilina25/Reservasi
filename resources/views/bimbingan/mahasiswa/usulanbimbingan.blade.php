@@ -239,10 +239,9 @@
                                     <tbody>
                                         @forelse($riwayat as $index => $item)
                                             <tr class="text-center">
-                                                <td>{{ ($riwayat->currentPage() - 1) * $riwayat->perPage() + $loop->iteration }}
-                                                </td>
-                                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->isoFormat('D MMMM Y') }}</td>
-                                                <td>{{ $item->dosen_nama }}</td>
+                                                <td>{{ ($riwayat->currentPage() - 1) * $riwayat->perPage() + $loop->iteration }}</td>
+                                                <td>{{ $item->nim }}</td>
+                                                <td>{{ $item->mahasiswa_nama }}</td>
                                                 <td>{{ ucfirst($item->jenis_bimbingan) }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->isoFormat('D MMMM Y') }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') }} -

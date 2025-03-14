@@ -256,12 +256,19 @@
                                                 <td>{{ $item->nomor_antrian && trim($item->nomor_antrian) !== '' ? $item->nomor_antrian : '-' }}</td>
                                                 <td class="fw-bold text-white bg-success">DISETUJUI</td>
                                                 <td>
-                                                    <div class="action-icons">
-                                                        <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                                            class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                            title="Info">
-                                                            <i class="bi bi-info-circle"></i>
-                                                        </a>
+                                                    <div class="d-flex gap-2 justify-content-center">
+                                                        <button class="btn btn-sm btn-success selesai-btn"
+                                                            data-id="{{ $item->id }}" data-bs-toggle="modal"
+                                                            data-bs-target="#modalSelesai" title="Selesai">
+                                                            <i class="bi bi-check2-circle"></i>
+                                                        </button>
+                                                        <div class="action-icons">
+                                                            <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
+                                                                title="Info">
+                                                                <i class="bi bi-info-circle"></i>
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -469,6 +476,29 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Selesai -->
+<div class="modal fade" id="modalSelesai" tabindex="-1" aria-labelledby="modalSelesaiLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="modalSelesaiLabel">
+                    <i class="bi bi-check2-circle text-success me-2"></i>
+                    Konfirmasi Selesai Bimbingan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-lg me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-success" id="confirmSelesai">
+                    <i class="bi bi-check2-circle me-2"></i>Selesai
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -477,6 +507,17 @@
     document.addEventListener('DOMContentLoaded', function() {
     let currentRow = null;
     let currentId = null;
+    let currentSelesaiId = null;
+    
+    // Dapatkan referensi ke modal-modal
+    const modalTerima = document.getElementById('modalTerima');
+    const modalTolak = document.getElementById('modalTolak');
+    const modalSelesai = document.getElementById('modalSelesai');
+    
+    // Inisialisasi instance bootstrap modal
+    const bsModalTerima = modalTerima ? new bootstrap.Modal(modalTerima) : null;
+    const bsModalTolak = modalTolak ? new bootstrap.Modal(modalTolak) : null;
+    const bsModalSelesai = modalSelesai ? new bootstrap.Modal(modalSelesai) : null;
 
     function initializeTooltips() {
         if (typeof bootstrap !== 'undefined') {
@@ -538,8 +579,7 @@
 
             if (!currentRow || !currentId) return;
 
-            const modalInstance = new bootstrap.Modal(document.getElementById('modalTerima'));
-            modalInstance.show();
+            if (bsModalTerima) bsModalTerima.show();
         });
     });
 
@@ -552,8 +592,18 @@
 
             if (!currentRow || !currentId) return;
 
-            const modalInstance = new bootstrap.Modal(document.getElementById('modalTolak'));
-            modalInstance.show();
+            if (bsModalTolak) bsModalTolak.show();
+        });
+    });
+
+    // Setup modal handler untuk tombol selesai
+    document.querySelectorAll('.selesai-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentSelesaiId = this.getAttribute('data-id');
+            console.log('Button selesai diklik, ID:', currentSelesaiId);
+            
+            if (bsModalSelesai) bsModalSelesai.show();
         });
     });
 
@@ -585,8 +635,7 @@
             const data = await response.json();
 
             if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalTerima'));
-                if (modal) modal.hide();
+                if (bsModalTerima) bsModalTerima.hide();
 
                 Swal.fire({
                     icon: 'success',
@@ -640,8 +689,7 @@
             const data = await response.json();
 
             if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalTolak'));
-                if (modal) modal.hide();
+                if (bsModalTolak) bsModalTolak.hide();
 
                 Swal.fire({
                     icon: 'success',
@@ -667,21 +715,101 @@
         }
     });
 
-    // Handle modal cleanup
-    ['modalTerima', 'modalTolak'].forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        modal?.addEventListener('hidden.bs.modal', function() {
-            const input = modalId === 'modalTerima' ?
-                document.getElementById('lokasiBimbingan') :
-                document.getElementById('alasanPenolakan');
+    // Handle konfirmasi selesai
+    document.getElementById('confirmSelesai')?.addEventListener('click', async function() {
+        if (!currentSelesaiId) {
+            console.log('Error: currentSelesaiId kosong');
+            return;
+        }
 
-            if (input) {
-                input.classList.remove('is-invalid');
-                input.value = '';
+        try {
+            console.log('Mengirim request ke /persetujuan/selesai/' + currentSelesaiId);
+            
+            // Close the confirmation modal first
+            if (bsModalSelesai) bsModalSelesai.hide();
+
+            // Show loading state
+            Swal.fire({
+                title: 'Memproses',
+                text: 'Mohon tunggu...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Send the request
+            const response = await fetch(`/persetujuan/selesai/${currentSelesaiId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            });
+
+            console.log('Response status:', response.status);
+            
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Parsed data:', data);
+            } catch (parseError) {
+                console.error('Error parsing JSON:', parseError);
+                throw new Error('Invalid JSON response');
             }
 
-            currentRow = null;
-            currentId = null;
+            if (data.success) {
+                // Show success notification
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: data.message || 'Bimbingan telah diselesaikan',
+                    showConfirmButton: false,
+                    timer: 1500
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                throw new Error(data.message || 'Terjadi kesalahan');
+            }
+        } catch (error) {
+            console.error('Error lengkap:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Tidak dapat memproses permintaan',
+                text: error.message || 'Silakan coba beberapa saat lagi',
+                confirmButtonColor: '#1a73e8'
+            });
+        }
+    });
+
+    // Handle modal cleanup
+    ['modalTerima', 'modalTolak', 'modalSelesai'].forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        modal?.addEventListener('hidden.bs.modal', function() {
+            if (modalId === 'modalTerima') {
+                const input = document.getElementById('lokasiBimbingan');
+                if (input) {
+                    input.classList.remove('is-invalid');
+                    input.value = '';
+                }
+                currentRow = null;
+                currentId = null;
+            } else if (modalId === 'modalTolak') {
+                const input = document.getElementById('alasanPenolakan');
+                if (input) {
+                    input.classList.remove('is-invalid');
+                    input.value = '';
+                }
+                currentRow = null;
+                currentId = null;
+            } else if (modalId === 'modalSelesai') {
+                currentSelesaiId = null;
+            }
         });
     });
 });

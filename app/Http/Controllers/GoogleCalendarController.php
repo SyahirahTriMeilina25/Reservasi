@@ -144,9 +144,9 @@ class GoogleCalendarController extends Controller
                 default => throw new \Exception('Invalid guard')
             };
 
-            return redirect()->route($routeName)
-                ->with('success', 'Google Calendar berhasil terhubung!')
-                ->with('first_connection', true);
+            return redirect()->route($routeName, ['connected' => 'true'])
+            ->with('success', 'Google Calendar berhasil terhubung!')
+            ->with('first_connection', true);
         } catch (\Exception $e) {
 
             $errorMessage = $this->getErrorMessage($e->getMessage());

@@ -378,4 +378,33 @@ class DosenController extends Controller
             ], 500);
         }
     }
+    public function selesaikan($id)
+    {
+        Log::info('Fungsi selesaikan dipanggil dengan ID: ' . $id);
+        try {
+            $usulan = UsulanBimbingan::findOrFail($id);
+
+            if ($usulan->status !== 'DISETUJUI') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya bimbingan yang disetujui yang dapat diselesaikan'
+                ], 422);
+            }
+
+            $usulan->update([
+                'status' => 'SELESAI'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bimbingan berhasil diselesaikan'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in selesaikan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menyelesaikan bimbingan'
+            ], 500);
+        }
+    }
 }
