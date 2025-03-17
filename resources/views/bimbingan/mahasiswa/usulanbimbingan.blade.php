@@ -133,8 +133,7 @@
                                                     {{ \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') }}</td>
                                                 <td>{{ $item->lokasi ?? '-' }}</td>
                                                 <td>{{ $item->nomor_antrian ?? '-' }}</td>
-                                                <td
-                                                    class="fw-bold bg-{{ $item->status === 'DISETUJUI' ? 'success' : ($item->status === 'DITOLAK' ? 'danger' : 'warning') }} text-white">
+                                                <td class="fw-bold bg-{{ $item->status === 'DISETUJUI' ? 'success' : ($item->status === 'DITOLAK' ? 'danger' : ($item->status === 'DIBATALKAN' ? 'secondary' : 'warning')) }} text-white">
                                                     {{ $item->status }}
                                                 </td>
                                                 <td>
@@ -249,8 +248,7 @@
                                                 <td>{{ $item->lokasi && trim($item->lokasi) !== '' ? $item->lokasi : '-' }}
                                                 </td>
                                                 <td>{{ $item->nomor_antrian ?? '-' }}</td>
-                                                <td
-                                                    class="fw-bold {{ $item->status === 'SELESAI' ? 'bg-success' : 'bg-danger' }} text-white">
+                                                <td class="fw-bold {{ $item->status === 'SELESAI' ? 'bg-success' : ($item->status === 'DITOLAK' ? 'bg-danger' : ($item->status === 'DIBATALKAN' ? 'bg-secondary' : 'bg-danger')) }} text-white">
                                                     {{ $item->status }}
                                                 </td>
                                                 <td>

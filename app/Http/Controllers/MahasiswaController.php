@@ -57,7 +57,7 @@ class MahasiswaController extends Controller
                         ->join('mahasiswas as m', 'ub.nim', '=', 'm.nim')
                         ->join('dosens as d', 'ub.nip', '=', 'd.nip')
                         ->where('ub.nim', $nim)
-                        ->whereIn('ub.status', ['SELESAI', 'DITOLAK'])
+                        ->whereIn('ub.status', ['SELESAI', 'DITOLAK', 'DIBATALKAN'])
                         ->select('ub.*', 'm.nama as mahasiswa_nama', 'd.nama as dosen_nama')
                         ->orderBy('ub.tanggal', 'desc')
                         ->paginate($perPage);
@@ -109,6 +109,9 @@ class MahasiswaController extends Controller
                     break;
                 case 'SELESAI':
                     $statusBadgeClass = 'bg-primary';
+                    break;
+                case 'DIBATALKAN':  // Tambahkan kasus untuk DIBATALKAN
+                    $statusBadgeClass = 'bg-secondary';  // Gunakan warna abu-abu untuk status dibatalkan
                     break;
                 default:
                     $statusBadgeClass = '';

@@ -82,7 +82,7 @@ class DosenController extends Controller
                     $riwayat = DB::table('usulan_bimbingans as ub')
                         ->join('mahasiswas as m', 'ub.nim', '=', 'm.nim')
                         ->where('ub.nip', $nip)
-                        ->whereIn('ub.status', ['SELESAI', 'DITOLAK'])
+                        ->whereIn('ub.status', ['SELESAI', 'DITOLAK', 'DIBATALKAN'])
                         ->select('ub.*', 'm.nama as mahasiswa_nama')
                         ->orderBy('ub.tanggal', 'desc')
                         ->orderBy('ub.waktu_mulai', 'desc')
@@ -139,11 +139,13 @@ class DosenController extends Controller
                 case 'SELESAI':
                     $statusBadgeClass = 'bg-primary';
                     break;
+                case 'DIBATALKAN':  // Tambahkan kasus untuk DIBATALKAN
+                    $statusBadgeClass = 'bg-secondary';  // Gunakan warna abu-abu untuk status dibatalkan
+                    break;
                 default:
                     $statusBadgeClass = '';
                     break;
             }
-
             return view('bimbingan.aksiInformasi', compact(
                 'usulan',
                 'tanggal',
@@ -237,9 +239,9 @@ class DosenController extends Controller
             $usulan = UsulanBimbingan::with('mahasiswa')->findOrFail($id);
 
             $jadwal = JadwalBimbingan::where('event_id', $usulan->event_id)
-                                    ->where('status', 'tersedia')
-                                    ->first();
-            
+                ->where('status', 'tersedia')
+                ->first();
+
             if (!$jadwal) {
                 return response()->json([
                     'success' => false,
@@ -284,11 +286,11 @@ class DosenController extends Controller
                             ];
 
                             $description = "Status: Disetujui\n" .
-                                        "Dosen: {$usulan->dosen->nama}\n" .
-                                        "Mahasiswa: {$usulan->mahasiswa->nama}\n" .
-                                        "NIM: {$usulan->nim}\n" .
-                                        "Nomor Antrian: {$usulan->nomor_antrian}\n" .
-                                        "Lokasi: {$request->lokasi}\n";
+                                "Dosen: {$usulan->dosen->nama}\n" .
+                                "Mahasiswa: {$usulan->mahasiswa->nama}\n" .
+                                "NIM: {$usulan->nim}\n" .
+                                "Nomor Antrian: {$usulan->nomor_antrian}\n" .
+                                "Lokasi: {$request->lokasi}\n";
 
                             $this->googleCalendarController->updateEventAttendees(
                                 $usulan->event_id,
@@ -321,7 +323,6 @@ class DosenController extends Controller
                         'success' => true,
                         'message' => 'Usulan bimbingan berhasil disetujui (tanpa notifikasi calendar)'
                     ]);
-
                 } catch (\Exception $e) {
                     Log::error('Google Calendar Error Detail:', [
                         'message' => $e->getMessage(),
@@ -342,7 +343,6 @@ class DosenController extends Controller
                 'success' => false,
                 'message' => 'Gagal menyetujui usulan bimbingan'
             ], 500);
-
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error in approve consultation:', [
@@ -404,6 +404,50 @@ class DosenController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat menyelesaikan bimbingan'
+            ], 500);
+        }
+    }
+    public function batalkanPersetujuan($id, Request $request)
+    {
+        try {
+            // Validasi input
+            $request->validate([
+                'alasan' => 'required|string'
+            ]);
+
+            // Cari data bimbingan
+            $bimbingan = UsulanBimbingan::findOrFail($id);
+
+            // Pastikan status saat ini adalah DISETUJUI
+            if ($bimbingan->status !== 'DISETUJUI') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Hanya bimbingan yang telah disetujui yang dapat dibatalkan'
+                ], 400);
+            }
+
+            // Update status dan tambahkan alasan
+            $bimbingan->status = 'DIBATALKAN';
+            $bimbingan->keterangan = $request->alasan;
+            $bimbingan->updated_at = now();
+            $bimbingan->save();
+
+            // Log pembatalan
+            Log::info('Persetujuan bimbingan dibatalkan:', [
+                'id' => $id,
+                'dosen' => Auth::guard('dosen')->user()->nip,
+                'alasan' => $request->alasan
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Persetujuan bimbingan berhasil dibatalkan'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error saat membatalkan persetujuan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
         }
     }

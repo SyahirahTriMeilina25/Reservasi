@@ -262,6 +262,10 @@
                                                             data-bs-target="#modalSelesai" title="Selesai">
                                                             <i class="bi bi-check2-circle"></i>
                                                         </button>
+                                                        <button class="btn btn-sm btn-danger batal-btn"
+                                                            data-id="{{ $item->id }}" title="Batalkan">
+                                                            <i class="bi bi-x-circle"></i>
+                                                        </button>
                                                         <div class="action-icons">
                                                             <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
                                                                 class="action-icon info-icon" data-bs-toggle="tooltip"
@@ -315,10 +319,13 @@
                                                 <td>{{ $item->lokasi && trim($item->lokasi) !== '' ? $item->lokasi : '-' }}
                                                 </td>
                                                 <td>{{ $item->nomor_antrian && trim($item->nomor_antrian) !== '' ? $item->nomor_antrian : '-' }}</td>
-                                                <td
-                                                    class="fw-bold {{ $item->status === 'SELESAI' ? 'bg-success' : 'bg-danger' }} text-white">
-                                                    {{ $item->status }}
-                                                </td>
+                                                <td class="fw-bold {{ 
+                                                    $item->status === 'DISETUJUI' ? 'bg-success' : (
+                                                        $item->status === 'DITOLAK' ? 'bg-danger' : (
+                                                            $item->status === 'DIBATALKAN' ? 'bg-secondary' : 'bg-warning'
+                                                        )
+                                                    ) 
+                                                }} text-white">{{ $item->status }}</td>
                                                 <td>
                                                     <div class="action-icons">
                                                         <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
@@ -499,6 +506,46 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Batal Persetujuan -->
+<div class="modal fade" id="modalBatal" tabindex="-1" aria-labelledby="modalBatalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold" id="modalBatalLabel">
+                    <i class="bi bi-x-circle text-danger me-2"></i>
+                    Batalkan Persetujuan Bimbingan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Form Alasan -->
+                <div class="form-group">
+                    <label for="alasanPembatalan" class="form-label fw-bold">Alasan Pembatalan <span
+                            class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">
+                            <i class="fas fa-comment-alt"></i>
+                        </span>
+                        <textarea class="form-control" id="alasanPembatalan" rows="3" required
+                            placeholder="Contoh: Ada jadwal rapat mendadak, mohon maaf atas ketidaknyamanannya"></textarea>
+                    </div>
+                    <div class="invalid-feedback">Alasan pembatalan wajib diisi</div>
+                    <small class="text-muted">Berikan alasan yang jelas kepada mahasiswa mengapa jadwal bimbingan dibatalkan</small>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmBatal">
+                    <i class="fas fa-times me-2"></i>Ya, Batalkan
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -508,16 +555,19 @@
     let currentRow = null;
     let currentId = null;
     let currentSelesaiId = null;
+    let currentBatalId = null;
     
     // Dapatkan referensi ke modal-modal
     const modalTerima = document.getElementById('modalTerima');
     const modalTolak = document.getElementById('modalTolak');
     const modalSelesai = document.getElementById('modalSelesai');
+    const modalBatal = document.getElementById('modalBatal');
     
     // Inisialisasi instance bootstrap modal
     const bsModalTerima = modalTerima ? new bootstrap.Modal(modalTerima) : null;
     const bsModalTolak = modalTolak ? new bootstrap.Modal(modalTolak) : null;
     const bsModalSelesai = modalSelesai ? new bootstrap.Modal(modalSelesai) : null;
+    const bsModalBatal = modalBatal ? new bootstrap.Modal(modalBatal) : null;
 
     function initializeTooltips() {
         if (typeof bootstrap !== 'undefined') {
@@ -533,42 +583,47 @@
     initializeTooltips();
 
     // Function to update row after approval/rejection
-    function updateRowAfterAction(row, id, lokasi, status) {
-        if (!row) return;
+    // Function to update row after approval/rejection
+function updateRowAfterAction(row, id, lokasi, status) {
+    if (!row) return;
 
-        const statusCell = row.querySelector('td:nth-child(9)'); // Adjusted to correct column
-        if (statusCell) {
-            statusCell.textContent = status;
-            statusCell.className = 'fw-bold text-white';
+    const statusCell = row.querySelector('td:nth-child(9)'); // Adjusted to correct column
+    if (statusCell) {
+        statusCell.textContent = status;
+        statusCell.className = 'fw-bold text-white';
 
-            if (status === 'DISETUJUI') {
-                statusCell.classList.add('bg-success');
-            } else if (status === 'DITOLAK') {
-                statusCell.classList.add('bg-danger');
-            } else {
-                statusCell.classList.add('bg-warning');
-            }
-        }
-
-        if (lokasi) {
-            const lokasiCell = row.querySelector('td:nth-child(7)');
-            if (lokasiCell) {
-                lokasiCell.textContent = lokasi;
-            }
-        }
-
-        const actionCell = row.querySelector('.action-icons');
-        if (actionCell) {
-            actionCell.innerHTML = `
-                <a href="/dosen/detailbimbingan/${id}" 
-                   class="action-icon info-icon" 
-                   data-bs-toggle="tooltip" 
-                   title="Info">
-                    <i class="bi bi-info-circle"></i>
-                </a>`;
-            initializeTooltips();
+        if (status === 'DISETUJUI') {
+            statusCell.classList.add('bg-success');
+        } else if (status === 'DITOLAK') {
+            statusCell.classList.add('bg-danger');
+        } else if (status === 'DIBATALKAN') { // Tambahkan kondisi untuk status DIBATALKAN
+            statusCell.classList.add('bg-secondary');
+        } else if (status === 'SELESAI') {
+            statusCell.classList.add('bg-primary');
+        } else {
+            statusCell.classList.add('bg-warning');
         }
     }
+
+    if (lokasi) {
+        const lokasiCell = row.querySelector('td:nth-child(7)');
+        if (lokasiCell) {
+            lokasiCell.textContent = lokasi;
+        }
+    }
+
+    const actionCell = row.querySelector('.action-icons');
+    if (actionCell) {
+        actionCell.innerHTML = `
+            <a href="/dosen/detailbimbingan/${id}" 
+               class="action-icon info-icon" 
+               data-bs-toggle="tooltip" 
+               title="Info">
+                <i class="bi bi-info-circle"></i>
+            </a>`;
+        initializeTooltips();
+    }
+}
 
     // Setup modal handling for approve action
     document.querySelectorAll('.approve-icon').forEach(button => {
@@ -787,8 +842,84 @@
         }
     });
 
+    // Setup event listener untuk tombol batal
+    document.querySelectorAll('.batal-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentBatalId = this.getAttribute('data-id');
+            
+            // Tampilkan modal
+            if (bsModalBatal) bsModalBatal.show();
+        });
+    });
+    // Handle konfirmasi pembatalan
+document.getElementById('confirmBatal')?.addEventListener('click', async function() {
+    const alasanInput = document.getElementById('alasanPembatalan');
+    if (!alasanInput || !currentBatalId) return;
+
+    const alasan = alasanInput.value.trim();
+    if (!alasan) {
+        alasanInput.classList.add('is-invalid');
+        return;
+    }
+
+    try {
+        // Tutup modal konfirmasi
+        if (bsModalBatal) bsModalBatal.hide();
+
+        // Tampilkan loading
+        Swal.fire({
+            title: 'Memproses',
+            text: 'Mohon tunggu...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Kirim request
+        const response = await fetch(`/persetujuan/batal/${currentBatalId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                alasan: alasan
+            })
+        });
+        
+        const result = await response.json();
+
+        if (result.success) {
+            // Tampilkan notifikasi sukses
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: result.message || 'Bimbingan telah dibatalkan',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            throw new Error(result.message || 'Terjadi kesalahan');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Tidak dapat memproses permintaan',
+            text: error.message || 'Silakan coba beberapa saat lagi',
+            confirmButtonColor: '#1a73e8'
+        });
+    }
+});
+
+
     // Handle modal cleanup
-    ['modalTerima', 'modalTolak', 'modalSelesai'].forEach(modalId => {
+    ['modalTerima', 'modalTolak', 'modalSelesai', 'modalBatal'].forEach(modalId => {
         const modal = document.getElementById(modalId);
         modal?.addEventListener('hidden.bs.modal', function() {
             if (modalId === 'modalTerima') {
@@ -810,6 +941,15 @@
             } else if (modalId === 'modalSelesai') {
                 currentSelesaiId = null;
             }
+
+            if (modalId === 'modalBatal') {
+            const input = document.getElementById('alasanPembatalan');
+            if (input) {
+                input.classList.remove('is-invalid');
+                input.value = '';
+            }
+            currentBatalId = null;
+        }
         });
     });
 });
