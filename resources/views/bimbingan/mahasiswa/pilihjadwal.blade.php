@@ -89,6 +89,7 @@
                         <option value="kp">Bimbingan KP</option>
                         <option value="akademik">Bimbingan Akademik</option>
                         <option value="konsultasi">Konsultasi Pribadi</option>
+                        <option value="mbkm">Bimbingan MBKM</option>
                     </select>
                 </div>
 
@@ -171,7 +172,8 @@
             'skripsi': 'Bimbingan Skripsi',
             'kp': 'Bimbingan KP',
             'akademik': 'Bimbingan Akademik',
-            'konsultasi': 'Konsultasi Pribadi'
+            'konsultasi': 'Konsultasi Pribadi',
+            'mbkm': 'Bimbingan MBKM'
         };
     
         // Handler untuk perubahan dosen

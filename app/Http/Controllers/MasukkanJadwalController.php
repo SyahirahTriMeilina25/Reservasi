@@ -79,7 +79,7 @@ class MasukkanJadwalController extends Controller
                 'description' => 'nullable|string',
                 'has_kuota_limit' => 'boolean',
                 'kuota' => 'nullable|numeric|min:1',
-                'jenis_bimbingan' => 'nullable|string|in:skripsi,kp,akademik,konsultasi',
+                'jenis_bimbingan' => 'nullable|string|in:skripsi,kp,akademik,konsultasi,mbkm',
                 'lokasi' => 'nullable|string|max:255',
             ]);
 
@@ -145,6 +145,7 @@ class MasukkanJadwalController extends Controller
                     'kp' => 'Bimbingan KP',
                     'akademik' => 'Bimbingan Akademik',
                     'konsultasi' => 'Konsultasi Pribadi',
+                    'mbkm'=> 'Bimbingan MBKM',
                     default => 'Bimbingan'
                 };
                 $description .= "Jenis: {$jenisBimbinganText}\n";

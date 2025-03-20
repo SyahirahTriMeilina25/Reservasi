@@ -28,11 +28,12 @@ class DatabaseSeeder extends Seeder
 
         // Jalankan seeders dalam urutan yang benar
         $this->call([
-            RoleSeeder::class,      // Jalankan pertama karena dibutuhkan oleh user
-            ProdiSeeder::class,     // Jalankan kedua karena dibutuhkan oleh user
-            KonsentrasiSeeder::class, // Jalankan ketiga karena dibutuhkan oleh mahasiswa
-            DosenSeeder::class,     // Opsional: Jika ingin menambahkan data dosen default
-            MahasiswaSeeder::class  // Opsional: Jika ingin menambahkan data mahasiswa default
+            RoleSeeder::class,
+            KoordinatorProdiRoleSeeder::class,  // Pastikan ini dijalankan sebelum DosenSeeder
+            ProdiSeeder::class,
+            KonsentrasiSeeder::class,
+            DosenSeeder::class,
+            MahasiswaSeeder::class
         ]);
     }
 }

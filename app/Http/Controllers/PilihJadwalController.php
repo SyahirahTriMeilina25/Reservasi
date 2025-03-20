@@ -96,7 +96,7 @@ class PilihJadwalController extends Controller
             // Validasi request
             $request->validate([
                 'nip' => 'required|exists:dosens,nip',
-                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi',
+                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm',
                 'jadwal_id' => 'required|exists:jadwal_bimbingans,id',
                 'deskripsi' => 'nullable|string'
             ]);
@@ -358,7 +358,7 @@ class PilihJadwalController extends Controller
         try {
             $request->validate([
                 'jadwal_id' => 'required|exists:jadwal_bimbingans,id',
-                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi'
+                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm'
             ]);
 
             Log::info('Check Availability Request:', [
@@ -549,7 +549,7 @@ class PilihJadwalController extends Controller
             $jenisBimbingan = [];
 
             // Perubahan: Tampilkan semua jenis bimbingan yang ada di sistem
-            $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi'];
+            $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi', 'mbkm'];
 
             // Ada 2 opsi di sini - pilih salah satu sesuai kebutuhan:
 
@@ -562,7 +562,7 @@ class PilihJadwalController extends Controller
 
             if ($hasUnspecifiedJadwal) {
                 // Jika ada jadwal tanpa jenis spesifik, tambahkan semua jenis bimbingan
-                $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi'];
+                $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi', 'mbkm'];
                 $jenisBimbingan = array_merge($jenisBimbingan, $allJenisBimbingan);
                 Log::info('Menambahkan semua jenis bimbingan karena ada jadwal non-spesifik');
             }

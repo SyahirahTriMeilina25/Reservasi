@@ -958,6 +958,7 @@
                                 <option value="kp">Bimbingan KP</option>
                                 <option value="akademik">Bimbingan Akademik</option>
                                 <option value="konsultasi">Konsultasi Pribadi</option>
+                                <option value="mbkm">Bimbingan MBKM</option>
                             </select>
                         </div>
                     </div>

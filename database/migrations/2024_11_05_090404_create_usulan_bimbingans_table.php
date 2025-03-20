@@ -21,7 +21,8 @@ return new class extends Migration
                 'skripsi',
                 'kp',
                 'akademik',
-                'konsultasi'
+                'konsultasi',
+                'mbkm'
             ]);
             
             // Waktu bimbingan

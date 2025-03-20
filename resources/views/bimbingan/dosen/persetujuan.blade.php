@@ -789,8 +789,7 @@
     initializeTooltips();
 
     // Function to update row after approval/rejection
-    // Function to update row after approval/rejection
-function updateRowAfterAction(row, id, lokasi, status) {
+    function updateRowAfterAction(row, id, lokasi, status) {
     if (!row) return;
 
     const statusCell = row.querySelector('td:nth-child(9)'); // Adjusted to correct column
@@ -1059,7 +1058,7 @@ function updateRowAfterAction(row, id, lokasi, status) {
         });
     });
     // Handle konfirmasi pembatalan
-document.getElementById('confirmBatal')?.addEventListener('click', async function() {
+    document.getElementById('confirmBatal')?.addEventListener('click', async function() {
     const alasanInput = document.getElementById('alasanPembatalan');
     if (!alasanInput || !currentBatalId) return;
 

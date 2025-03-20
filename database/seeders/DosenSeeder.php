@@ -11,6 +11,19 @@ class DosenSeeder extends Seeder
 {
     public function run()
     {
+        $koordinatorProdiRoleId = DB::table('role')
+        ->where('role_akses', 'koordinator_prodi')
+        ->value('id');
+
+            // Jika tidak ditemukan, gunakan default
+            if (!$koordinatorProdiRoleId) {
+                // Buat role koordinator prodi jika belum ada
+                $koordinatorProdiRoleId = DB::table('role')->insertGetId([
+                    'role_akses' => 'koordinator_prodi',
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now()
+                ]);
+            }
         $dosen = [
             [
                 'nip' => '198501012015041001',
@@ -41,7 +54,7 @@ class DosenSeeder extends Seeder
                 'email' => 'adrian.marchel@student.unri.ac.id',
                 'password' => Hash::make('pw123'),
                 'prodi_id' => 1, // Sesuaikan dengan ID prodi yang sesuai
-                'role_id' => 1,  // Role dosen
+                'role_id' => $koordinatorProdiRoleId,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()
             ]
