@@ -43,21 +43,57 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2300923F' fill-opacity='0.05' d='M0,96L48,122.7C96,149,192,203,288,208C384,213,480,171,576,138.7C672,107,768,85,864,96C960,107,1056,149,1152,154.7C1248,160,1344,128,1392,112L1440,96L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z'%3E%3C/path%3E%3C/svg%3E") no-repeat top;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2333CCFF' fill-opacity='0.05' d='M0,96L48,122.7C96,149,192,203,288,208C384,213,480,171,576,138.7C672,107,768,85,864,96C960,107,1056,149,1152,154.7C1248,160,1344,128,1392,112L1440,96L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z'%3E%3C/path%3E%3C/svg%3E") no-repeat top;
             background-size: cover;
             z-index: 0;
         }
 
+        /* Perbaikan untuk carousel */
         .carousel-section {
             background: rgba(248, 249, 250, 0.9);
             border-radius: 15px;
             margin: 1rem;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+            height: calc(100% - 2rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .carousel {
+            width: 100%;
+            height: 100%;
+        }
+
+        .carousel-inner {
+            height: 100%;
+        }
+
+        .carousel-item {
+            height: 100%;
+            padding: 1rem;
         }
 
         .carousel-item img {
             border-radius: 15px;
-            padding: 1rem;
+            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+        }
+
+        .carousel-control-prev,
+        .carousel-control-next {
+            width: 10%;
+            opacity: 0.7;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+          
+            border-radius: 50%;
+            padding: 10px;
         }
 
         .form-section {
@@ -88,19 +124,37 @@
             transition: all 0.3s ease;
         }
 
-        .form-floating input::-ms-reveal,
-        .form-floating input::-ms-clear {
-            display: none;
+        /* Override Bootstrap validation icons */
+        .form-control.is-valid,
+        .was-validated .form-control:valid {
+            background-image: none !important;
+            padding-right: 0.75rem !important;
+            border-color: #198754;
         }
 
-        .form-floating input::-webkit-contacts-auto-fill-button,
-        .form-floating input::-webkit-credentials-auto-fill-button {
-            visibility: hidden;
-            display: none !important;
-            pointer-events: none;
-            height: 0;
-            width: 0;
-            margin: 0;
+        .form-control.is-invalid,
+        .was-validated .form-control:invalid {
+            background-image: none !important;
+            padding-right: 0.75rem !important;
+            border-color: #dc3545;
+        }
+
+        /* Custom password field */
+        .password-field-wrapper {
+            position: relative;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            z-index: 5;
+            cursor: pointer;
+            padding: 0.25rem;
         }
 
         .btn-success {
@@ -146,6 +200,7 @@
         @media (max-width: 992px) {
             .carousel-section {
                 margin-bottom: 2rem;
+                height: 300px;
             }
         }
 
@@ -188,17 +243,17 @@
                     <div class="login-container">
                         <div class="row g-0">
                             <div class="col-lg-8">
-                                <div class="carousel-section h-100">
-                                    <div id="carouselExampleControls" class="carousel slide h-100" data-bs-ride="carousel">
-                                        <div class="carousel-inner h-100">
-                                            <div class="carousel-item active h-100">
-                                                <img src="{{ asset('images/1.png') }}" class="d-block w-100 h-100" alt="Slide 1" style="object-fit: contain;">
+                                <div class="carousel-section">
+                                    <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                <img src="{{ asset('images/1.png') }}" alt="Slide 1">
                                             </div>
-                                            {{-- <div class="carousel-item h-100">
-                                                <img src="{{ asset('images/2.png') }}" class="d-block w-100 h-100" alt="Slide 2" style="object-fit: contain;">
+                                            {{-- <div class="carousel-item">
+                                                <img src="{{ asset('images/2.png') }}" alt="Slide 2">
                                             </div>
-                                            <div class="carousel-item h-100">
-                                                <img src="{{ asset('images/3.png') }}" class="d-block w-100 h-100" alt="Slide 3" style="object-fit: contain;">
+                                            <div class="carousel-item">
+                                                <img src="{{ asset('images/3.png') }}" alt="Slide 3">
                                             </div> --}}
                                         </div>
                                         <button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev">
@@ -243,23 +298,22 @@
                                             @enderror
                                         </div>
 
-                                        <div class="form-floating mb-4 position-relative">
-                                            <input type="password" 
-                                                class="form-control @error('password') is-invalid @enderror" 
-                                                name="password" 
-                                                id="password" 
-                                                placeholder="Password" 
-                                                required>
-                                            <label for="password">Password <span class="text-danger">*</span></label>
-                                            <button type="button" 
-                                                    class="password-toggle-btn" 
-                                                    id="togglePassword" 
-                                                    style="background: none; border: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #6c757d; cursor: pointer; z-index: 100;">
+                                        <div class="mb-4 password-field-wrapper">
+                                            <div class="form-floating">
+                                                <input type="password" 
+                                                    class="form-control @error('password') is-invalid @enderror" 
+                                                    name="password" 
+                                                    id="password" 
+                                                    placeholder="Password" 
+                                                    required>
+                                                <label for="password">Password <span class="text-danger">*</span></label>
+                                                @error('password')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <button type="button" id="togglePassword" class="password-toggle-btn">
                                                 <i class="fas fa-eye-slash"></i>
                                             </button>
-                                            @error('password')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
                                         </div>
 
                                         <button type="submit" class="btn btn-success w-100 mb-3">
@@ -313,19 +367,15 @@
         });
 
         // Form Validation
-        (function() {
-            'use strict';
-            const forms = document.querySelectorAll('.needs-validation');
-            Array.from(forms).forEach(form => {
-                form.addEventListener('submit', event => {
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
+        document.querySelectorAll('.needs-validation').forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
             });
-        })();
+        });
 
         // Auto-hide alerts
         setTimeout(function() {

@@ -26,11 +26,14 @@ class DosenController extends Controller
             $activeTab = $request->query('tab', 'usulan');
             $perPage = $request->query('per_page', 10);
             $nip = Auth::user()->nip;
+            $dosen = Auth::user();
 
             // Default values
             $usulan = collect();
             $jadwal = collect();
             $riwayat = collect();
+            $dosenList = collect();
+            $riwayatDosenList = collect();
 
             // Load data based on active tab
             switch ($activeTab) {
@@ -88,19 +91,58 @@ class DosenController extends Controller
                         ->orderBy('ub.waktu_mulai', 'desc')
                         ->paginate($perPage);
                     break;
-            }
 
-            return view('bimbingan.dosen.persetujuan', compact(
-                'activeTab',
-                'usulan',
-                'jadwal',
-                'riwayat'
-            ));
-        } catch (\Exception $e) {
-            Log::error('Error in dosen index: ' . $e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan saat memuat data');
+                    case 'pengelola':
+                        // Tab baru untuk koordinator prodi
+                        if ($dosen->isKoordinatorProdi()) {
+                            $prodiId = $dosen->prodi_id;
+                            
+                            // Daftar dosen dengan total bimbingan hari ini
+                            $dosenList = DB::table('dosens')
+                                ->leftJoin('usulan_bimbingans', function($join) {
+                                    $join->on('dosens.nip', '=', 'usulan_bimbingans.nip')
+                                        ->where('usulan_bimbingans.tanggal', '=', date('Y-m-d'))
+                                        ->where('usulan_bimbingans.status', '=', 'DISETUJUI');
+                                })
+                                ->where('dosens.prodi_id', $prodiId)
+                                ->select(
+                                    'dosens.nip',
+                                    'dosens.nama',
+                                    'dosens.nama_singkat',
+                                    DB::raw('COUNT(DISTINCT usulan_bimbingans.id) as total_bimbingan_hari_ini')
+                                )
+                                ->groupBy('dosens.nip', 'dosens.nama', 'dosens.nama_singkat')
+                                ->paginate($perPage);
+                            
+                            // Riwayat bimbingan semua dosen
+                            $riwayatDosenList = DB::table('dosens')
+                                ->leftJoin('usulan_bimbingans', 'dosens.nip', '=', 'usulan_bimbingans.nip')
+                                ->where('dosens.prodi_id', $prodiId)
+                                ->select(
+                                    'dosens.nip',
+                                    'dosens.nama',
+                                    'dosens.nama_singkat',
+                                    DB::raw('COUNT(DISTINCT usulan_bimbingans.id) as total_bimbingan')
+                                )
+                                ->groupBy('dosens.nip', 'dosens.nama', 'dosens.nama_singkat')
+                                ->paginate($perPage);
+                        }
+                        break;
+                }
+        
+                return view('bimbingan.dosen.persetujuan', compact(
+                    'activeTab',
+                    'usulan',
+                    'jadwal',
+                    'riwayat',
+                    'dosenList',
+                    'riwayatDosenList'
+                ));
+            } catch (\Exception $e) {
+                Log::error('Error in dosen index: ' . $e->getMessage());
+                return back()->with('error', 'Terjadi kesalahan saat memuat data');
+            }
         }
-    }
 
     public function getDetailBimbingan($id)
     {
@@ -449,6 +491,56 @@ class DosenController extends Controller
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function dosenDetail($nip)
+    {
+        try {
+            $dosen = Dosen::where('nip', $nip)->firstOrFail();
+
+            // Ambil daftar bimbingan hari ini
+            $bimbingan = DB::table('usulan_bimbingans as ub')
+                ->join('mahasiswas as m', 'ub.nim', '=', 'm.nim')
+                ->where('ub.nip', $nip)
+                ->where('ub.tanggal', date('Y-m-d'))
+                ->where('ub.status', 'DISETUJUI')
+                ->select(
+                    'ub.*',
+                    'm.nama as mahasiswa_nama'
+                )
+                ->orderBy('ub.waktu_mulai')
+                ->paginate(10);
+
+            return view('bimbingan.dosen.detaildaftar', compact('dosen', 'bimbingan'));
+        } catch (\Exception $e) {
+            Log::error('Error in dosenDetail: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat memuat detail dosen');
+        }
+    }
+
+    public function riwayatDosenDetail($nip)
+    {
+        try {
+            $dosen = Dosen::where('nip', $nip)->firstOrFail();
+
+            // Ambil semua riwayat bimbingan
+            $bimbingan = DB::table('usulan_bimbingans as ub')
+                ->join('mahasiswas as m', 'ub.nim', '=', 'm.nim')
+                ->where('ub.nip', $nip)
+                ->whereIn('ub.status', ['SELESAI', 'DISETUJUI', 'DIBATALKAN'])
+                ->select(
+                    'ub.*',
+                    'm.nama as mahasiswa_nama'
+                )
+                ->orderBy('ub.tanggal', 'desc')
+                ->orderBy('ub.waktu_mulai', 'desc')
+                ->paginate(10);
+
+            return view('bimbingan.dosen.riwayatdetail', compact('dosen', 'bimbingan'));
+        } catch (\Exception $e) {
+            Log::error('Error in riwayatDosenDetail: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat memuat riwayat detail dosen');
         }
     }
 }

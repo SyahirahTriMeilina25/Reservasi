@@ -61,6 +61,54 @@
             color: #1d4ed8;
             background-color: #f3f4f6;
         }
+        .card {
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 15px 20px;
+    }
+    
+    .card-header h5 {
+        margin-bottom: 0;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    /* Styling untuk tabel */
+    .table {
+        margin-bottom: 0;
+        border-color: #f0f0f0;
+        border-collapse: collapse !important;
+    }
+    
+    .table th {
+        
+        border-bottom: 2px solid #dee2e6 !important;
+        font-weight: 600;
+        border-top: none;
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid #dee2e6 !important;
+        padding: 12px 10px;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        border: 1px solid #dee2e6 !important;
+        padding: 12px 10px;
+        border-color: #f0f0f0;
+    }
 
     </style>
 @endpush
@@ -96,6 +144,14 @@
                             Riwayat
                         </a>
                     </li>
+                    @if(auth()->user()->isKoordinatorProdi())
+                    <li class="nav-item" role="presentation">
+                        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola', 'per_page' => request('per_page', 10)]) }}"
+                            class="nav-link px-4 py-3 {{ $activeTab == 'pengelola' ? 'active' : '' }}">
+                            Pengelola
+                        </a>
+                    </li>
+                    @endif
                 </ul>
             </div>
 
@@ -224,65 +280,99 @@
                             </div>
 
                             <!-- Tabel daftar mahasiswa yang disetujui -->
-                            <div class="table-responsive">
-                                <table class="table table-striped table-bordered align-middle">
-                                    <thead class="text-center">
-                                        <tr>
-                                            <th>No.</th>
-                                            <th>NIM</th>
-                                            <th>Nama</th>
-                                            <th>Jenis Bimbingan</th>
-                                            <th>Tanggal</th>
-                                            <th>Waktu</th>
-                                            <th>Lokasi</th>
-                                            <th>Antrian</th>
-                                            <th>Status</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($jadwal as $index => $item)
-                                            <tr class="text-center">
-                                                <td>{{ ($jadwal->currentPage() - 1) * $jadwal->perPage() + $loop->iteration }}
-                                                </td>
-                                                <td>{{ $item->nim }}</td>
-                                                <td>{{ $item->mahasiswa_nama }}</td>
-                                                <td>{{ ucfirst($item->jenis_bimbingan) }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->isoFormat('D MMMM Y') }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') }} -
-                                                    {{ \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') }}</td>
-                                                <td>{{ $item->lokasi && trim($item->lokasi) !== '' ? $item->lokasi : '-' }}
-                                                </td>
-                                                <td>{{ $item->nomor_antrian && trim($item->nomor_antrian) !== '' ? $item->nomor_antrian : '-' }}</td>
-                                                <td class="fw-bold text-white bg-success">DISETUJUI</td>
-                                                <td>
-                                                    <div class="d-flex gap-2 justify-content-center">
-                                                        <button class="btn btn-sm btn-success selesai-btn"
-                                                            data-id="{{ $item->id }}" data-bs-toggle="modal"
-                                                            data-bs-target="#modalSelesai" title="Selesai">
-                                                            <i class="bi bi-check2-circle"></i>
-                                                        </button>
-                                                        <button class="btn btn-sm btn-danger batal-btn"
-                                                            data-id="{{ $item->id }}" title="Batalkan">
-                                                            <i class="bi bi-x-circle"></i>
-                                                        </button>
-                                                        <div class="action-icons">
-                                                            <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                title="Info">
-                                                                <i class="bi bi-info-circle"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="10" class="text-center">Tidak ada jadwal bimbingan aktif</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
+                            <div class="card shadow-lg border-0 rounded-4">
+                                <div class="card-header bg-white p-3">
+                                    <h5 class="mb-0 fw-bold">Daftar Mahasiswa Bimbingan</h5>
+                                </div>
+                                <div class="card-body p-3">
+                                    {{-- <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <label class="me-2">Tampilkan</label>
+                                                <select class="form-select form-select-sm w-auto"
+                                                    onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'jadwal']) }}&per_page=' + this.value">
+                                                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                                                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                                    <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                                                    <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                                </select>
+                                                <label class="ms-2">entries</label>
+                                            </div>
+                                        </div>
+                                    </div> --}}
+                                    
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-bordered align-middle">
+                                            <thead class="text-center">
+                                                <tr>
+                                                    <th>No.</th>
+                                                    <th>NIM</th>
+                                                    <th>Nama</th>
+                                                    <th>Jenis Bimbingan</th>
+                                                    <th>Tanggal</th>
+                                                    <th>Waktu</th>
+                                                    <th>Lokasi</th>
+                                                    <th>Antrian</th>
+                                                    <th>Status</th>
+                                                    <th>Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @forelse($jadwal as $index => $item)
+                                                    <tr class="text-center">
+                                                        <td>{{ ($jadwal->currentPage() - 1) * $jadwal->perPage() + $loop->iteration }}</td>
+                                                        <td>{{ $item->nim }}</td>
+                                                        <td>{{ $item->mahasiswa_nama }}</td>
+                                                        <td>{{ ucfirst($item->jenis_bimbingan) }}</td>
+                                                        <td>{{ \Carbon\Carbon::parse($item->tanggal)->isoFormat('D MMMM Y') }}</td>
+                                                        <td>{{ \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') }} - 
+                                                            {{ \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') }}</td>
+                                                        <td>{{ $item->lokasi && trim($item->lokasi) !== '' ? $item->lokasi : '-' }}</td>
+                                                        <td>{{ $item->nomor_antrian && trim($item->nomor_antrian) !== '' ? $item->nomor_antrian : '-' }}</td>
+                                                        <td class="fw-bold text-white bg-success">DISETUJUI</td>
+                                                        <td>
+                                                            <div class="d-flex gap-2 justify-content-center">
+                                                                <button class="btn btn-sm btn-success selesai-btn"
+                                                                    data-id="{{ $item->id }}" data-bs-toggle="modal"
+                                                                    data-bs-target="#modalSelesai" title="Selesai">
+                                                                    <i class="bi bi-check2-circle"></i>
+                                                                </button>
+                                                                <button class="btn btn-sm btn-danger batal-btn"
+                                                                    data-id="{{ $item->id }}" title="Batalkan">
+                                                                    <i class="bi bi-x-circle"></i>
+                                                                </button>
+                                                                <div class="action-icons">
+                                                                    <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
+                                                                        class="action-icon info-icon" data-bs-toggle="tooltip"
+                                                                        title="Info">
+                                                                        <i class="bi bi-info-circle"></i>
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="10" class="text-center">Tidak ada jadwal bimbingan aktif</td>
+                                                    </tr>
+                                                @endforelse
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    @if($jadwal instanceof \Illuminate\Pagination\LengthAwarePaginator && $jadwal->total() > 0)
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <p class="mb-0">
+                                            Menampilkan {{ $jadwal->firstItem() }} sampai {{ $jadwal->lastItem() }} dari
+                                            {{ $jadwal->total() }} entri
+                                        </p>
+                                        {{ $jadwal->appends(request()->except('page'))->links() }}
+                                    </div>
+                                    @endif
+                                    
+                                    <!-- Hapus bagian menampilkan entri yang double -->
+                                    <!-- Jangan menyertakan bagian Menampilkan 1 sampai 1 dari 1 entri yang double -->
+                                </div>
                             </div>
                         </div>
                     @endif
@@ -347,6 +437,125 @@
                             </div>
                         </div>
                     @endif
+
+                    <!-- Di dalam div tab-content -->
+                    @if ($activeTab == 'pengelola' && auth()->user()->isKoordinatorProdi())
+                    <div class="tab-pane fade show active" id="pengelola" role="tabpanel">
+                        <!-- Daftar Jadwal Dosen -->
+                        <div class="card shadow-lg border-0 rounded-4 mb-4">
+                            <div class="card-header bg-white p-3">
+                                <h5 class="mb-0 fw-bold">Daftar Jadwal Dosen</h5>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-bordered align-middle">
+                                        <thead class="text-center">
+                                            <tr>
+                                                <th>No.</th>
+                                                <th>NIP</th>
+                                                <th>Nama Dosen</th>
+                                                <th>Nama Singkat</th>
+                                                <th>Total Bimbingan Hari Ini</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($dosenList as $index => $dosen)
+                                                <tr class="text-center">
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>{{ $dosen->nip }}</td>
+                                                    <td>{{ $dosen->nama }}</td>
+                                                    <td>{{ $dosen->nama_singkat }}</td>
+                                                    <td>{{ $dosen->total_bimbingan_hari_ini }}</td>
+                                                    <td>
+                                                        <div class="action-icons">
+                                                            <a href="{{ route('dosen.detail', $dosen->nip) }}"
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
+                                                                title="Info">
+                                                                <i class="bi bi-info-circle"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center">Tidak ada data dosen</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                @if($dosenList instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <p class="mb-0">
+                                        Menampilkan {{ $dosenList->firstItem() ?? 0 }} sampai {{ $dosenList->lastItem() ?? 0 }} 
+                                        dari {{ $dosenList->total() ?? 0 }} entri
+                                    </p>
+                                    {{ $dosenList->appends(request()->except('page'))->links() }}
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Riwayat Jadwal Dosen -->
+                        <div class="card shadow-lg border-0 rounded-4">
+                            <div class="card-header bg-white p-3">
+                                <h5 class="mb-0 fw-bold">Riwayat Jadwal Dosen</h5>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-bordered align-middle">
+                                        <thead class="text-center">
+                                            <tr>
+                                                <th>No.</th>
+                                                <th>NIP</th>
+                                                <th>Nama Dosen</th>
+                                                <th>Nama Singkat</th>
+                                                <th>Total Bimbingan Keseluruhan</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($riwayatDosenList as $index => $dosen)
+                                                <tr class="text-center">
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>{{ $dosen->nip }}</td>
+                                                    <td>{{ $dosen->nama }}</td>
+                                                    <td>{{ $dosen->nama_singkat }}</td>
+                                                    <td>{{ $dosen->total_bimbingan }}</td>
+                                                    <td>
+                                                        <div class="action-icons">
+                                                            <a href="{{ route('dosen.riwayat.detail', $dosen->nip) }}"
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
+                                                                title="Info">
+                                                                <i class="bi bi-info-circle"></i>
+                                                            </a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center">Tidak ada data riwayat dosen</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                @if($riwayatDosenList instanceof \Illuminate\Pagination\LengthAwarePaginator)
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <p class="mb-0">
+                                        Menampilkan {{ $riwayatDosenList->firstItem() ?? 0 }} sampai {{ $riwayatDosenList->lastItem() ?? 0 }} 
+                                        dari {{ $riwayatDosenList->total() ?? 0 }} entri
+                                    </p>
+                                    {{ $riwayatDosenList->appends(request()->except('page'))->links() }}
+                                </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
 
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3">
@@ -354,9 +563,6 @@
                         @if ($activeTab == 'usulan' && $usulan->total() > 0)
                             Menampilkan {{ $usulan->firstItem() }} sampai {{ $usulan->lastItem() }} dari
                             {{ $usulan->total() }} entri
-                        @elseif($activeTab == 'jadwal' && $jadwal->total() > 0)
-                            Menampilkan {{ $jadwal->firstItem() }} sampai {{ $jadwal->lastItem() }} dari
-                            {{ $jadwal->total() }} entri
                         @elseif($activeTab == 'riwayat' && $riwayat->total() > 0)
                             Menampilkan {{ $riwayat->firstItem() }} sampai {{ $riwayat->lastItem() }} dari
                             {{ $riwayat->total() }} entri

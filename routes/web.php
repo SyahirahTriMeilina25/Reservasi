@@ -97,6 +97,8 @@ Route::middleware(['auth:dosen', 'checkRole:dosen'])->group(function () {
         Route::post('/persetujuan/tolak/{id}', 'tolak')->name('dosen.persetujuan.tolak');
         Route::post('/persetujuan/selesai/{id}', [DosenController::class, 'selesaikan'])->name('dosen.persetujuan.selesai');
         Route::post('/persetujuan/batal/{id}', [DosenController::class, 'batalkanPersetujuan'])->name('dosen.persetujuan.batal');
+        Route::get('/dosen/detail/{nip}', [DosenController::class, 'dosenDetail'])->name('dosen.detail');
+        Route::get('/dosen/riwayat-detail/{nip}', [DosenController::class, 'riwayatDosenDetail'])->name('dosen.riwayat.detail');
     });
 
     // Jadwal routes

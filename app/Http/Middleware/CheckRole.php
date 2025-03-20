@@ -45,8 +45,9 @@ class CheckRole
 
             Log::info('Role user: ' . $userRole->role_akses);
             
-            // Cek apakah role_akses sesuai
-            if ($userRole->role_akses !== $role) {
+            // Cek apakah role_akses sesuai atau koordinator prodi mengakses route dosen
+            if ($userRole->role_akses !== $role && 
+                !($role === 'dosen' && $userRole->role_akses === 'koordinator_prodi')) {
                 Log::info('Role tidak sesuai');
                 abort(403, 'Unauthorized access');
             }

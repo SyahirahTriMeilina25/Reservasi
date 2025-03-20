@@ -64,4 +64,9 @@ class Dosen extends Authenticatable
         }
         return asset('images/default-avatar.png');
     }
+
+    public function isKoordinatorProdi()
+    {
+        return $this->role && $this->role->role_akses === 'koordinator_prodi';
+    }
 }

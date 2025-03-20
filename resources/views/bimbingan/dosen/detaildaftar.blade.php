@@ -1,11 +1,9 @@
-<!-- resources/views/bimbingan/mahasiswa/detaildaftar.blade.php -->
 @extends('layouts.app')
 
-@section('title', 'Detail Daftar Bimbingan')
+@section('title', 'Detail Daftar Bimbingan Dosen')
 
 @push('styles')
 <style>
-
     form .form-label {
         font-weight: bold;
     }
@@ -23,10 +21,10 @@
 
 @section('content')
 <div class="container mt-5">
-    <h1 class="mb-2 gradient-text fw-bold">Detail Daftar Bimbingan</h1>
+    <h1 class="mb-2 gradient-text fw-bold">Detail Daftar Bimbingan Dosen</h1>
     <hr>
     <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center">
-        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'jadwal']) }}">
+        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}">
             <i class="bi bi-arrow-left me-2"></i> Kembali
         </a>
     </button>
@@ -58,7 +56,7 @@
 
                     <div class="table-responsive">
                         <table class="table table-striped table-bordered align-middle">
-                            <thead class="text-center">
+                            <thead class="text-center table-secondary">
                                 <tr>
                                     <th scope="col" class="text-center align-middle">No.</th>
                                     <th scope="col" class="text-center align-middle">NIM</th>
