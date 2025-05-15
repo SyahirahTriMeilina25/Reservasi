@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE usulan_bimbingans MODIFY COLUMN jenis_bimbingan ENUM('skripsi','kp','akademik','konsultasi','mbkm') NOT NULL");
+        DB::statement("ALTER TABLE usulan_bimbingans MODIFY COLUMN jenis_bimbingan ENUM('skripsi','kp','akademik','konsultasi','mbkm','lainnya') NOT NULL");
     }
 
     public function down(): void

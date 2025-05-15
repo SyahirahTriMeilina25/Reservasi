@@ -19,7 +19,7 @@ class MahasiswaSeeder extends Seeder
                 'email' => 'tri.murniati2735@student.unri.ac.id',
                 'password' => Hash::make('bismillah123'),
                 'prodi_id' => 2,
-                'konsentrasi_id' => 1, 
+                'konsentrasi_id' => 1,
                 'role_id' => 2,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()
@@ -31,7 +31,7 @@ class MahasiswaSeeder extends Seeder
                 'email' => 'desi.maya0665@student.unri.ac.id',
                 'password' => Hash::make('2107110665'),
                 'prodi_id' => 2,
-                'konsentrasi_id' => 1, 
+                'konsentrasi_id' => 1,
                 'role_id' => 2,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()
@@ -43,7 +43,19 @@ class MahasiswaSeeder extends Seeder
                 'email' => 'syahirah.tri0255@student.unri.ac.id',
                 'password' => Hash::make('2107110255'),
                 'prodi_id' => 2,
-                'konsentrasi_id' => 1, 
+                'konsentrasi_id' => 1,
+                'role_id' => 2,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now()
+            ],
+            [
+                'nim' => '2207135776',
+                'nama' => 'Rayhan Al Farassy',
+                'angkatan' => 2022,
+                'email' => 'rayhan.al5776@student.unri.ac.id',
+                'password' => Hash::make('2207135776'),
+                'prodi_id' => 2,
+                'konsentrasi_id' => 1,
                 'role_id' => 2,
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now()

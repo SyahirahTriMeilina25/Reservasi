@@ -11,6 +11,10 @@ use App\Http\Controllers\PesanController;
 use App\Http\Controllers\ProfilController;
 use App\Models\JadwalBimbingan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 // Route untuk guest (belum login)
 Route::middleware(['guest'])->group(function () {
@@ -54,6 +58,15 @@ Route::middleware(['auth:mahasiswa,dosen'])->group(function () {
         Route::put('/profil/update', 'update')->name('profile.update');
         Route::delete('/profil/remove', 'remove')->name('profile.remove');
     });
+
+    Route::post('/verify-page', function (Request $request) {
+        if ($request->page_token !== session('page_token')) {
+            return redirect()->route('login');
+        }
+        
+        // Token cocok, authentikasi valid
+        return redirect()->back();
+    });
 });
 
 // Route untuk mahasiswa
@@ -76,6 +89,7 @@ Route::middleware(['auth:mahasiswa', 'checkRole:mahasiswa'])->group(function () 
         Route::post('/create-event/{usulanId}', 'createGoogleCalendarEvent')->name('pilihjadwal.create-event');
 
         Route::get('/dosen/{nip}/jenis-bimbingan', 'getJenisBimbingan')->name('pilihjadwal.getJenisBimbingan');
+        Route::post('/cancel/{id}', 'cancelBooking')->name('pilihjadwal.cancel');
     });
 
     Route::controller(GoogleCalendarController::class)->prefix('mahasiswa')->group(function () {
@@ -96,9 +110,13 @@ Route::middleware(['auth:dosen', 'checkRole:dosen'])->group(function () {
         Route::post('/persetujuan/terima/{id}', 'terima')->name('dosen.persetujuan.terima');
         Route::post('/persetujuan/tolak/{id}', 'tolak')->name('dosen.persetujuan.tolak');
         Route::post('/persetujuan/selesai/{id}', [DosenController::class, 'selesaikan'])->name('dosen.persetujuan.selesai');
-        Route::post('/persetujuan/batal/{id}', [DosenController::class, 'batalkanPersetujuan'])->name('dosen.persetujuan.batal');
         Route::get('/dosen/detail/{nip}', [DosenController::class, 'dosenDetail'])->name('dosen.detail');
         Route::get('/dosen/riwayat-detail/{nip}', [DosenController::class, 'riwayatDosenDetail'])->name('dosen.riwayat.detail');
+        Route::get('/persetujuan/related-schedules/{id}', [DosenController::class, 'getRelatedSchedules'])
+            ->name('persetujuan.related-schedules');
+        Route::post('/persetujuan/batal/{id}', [DosenController::class, 'batalkanPersetujuan'])
+            ->name('persetujuan.batal')
+            ->middleware(['auth']);
     });
 
     // Jadwal routes
@@ -113,6 +131,9 @@ Route::middleware(['auth:dosen', 'checkRole:dosen'])->group(function () {
         Route::get('/google/connect', 'connect')->name('dosen.google.connect');
         Route::get('/google/events', 'getEvents')->name('dosen.google.events');
         Route::get('/google/callback', 'callback')->name('dosen.google.callback');
+        Route::get('/dosen/google/events', [MasukkanJadwalController::class, 'getEvents'])
+            ->name('dosen.google.events')
+            ->middleware(['auth:dosen']);
     });
 });
 
@@ -245,7 +266,7 @@ Route::get('/update-jadwal/{id}/{jenis}', function ($id, $jenis) {
 
 Route::get('/update-dosen-jadwal/{nip}/{jenis}', function ($nip, $jenis) {
     // Validasi jenis bimbingan
-    $validJenis = ['skripsi', 'kp', 'akademik', 'konsultasi'];
+    $validJenis = ['skripsi', 'kp', 'akademik', 'konsultasi', 'mbkm', 'lainnya'];
     if (!in_array($jenis, $validJenis)) {
         return "Jenis bimbingan tidak valid. Pilih dari: " . implode(', ', $validJenis);
     }
@@ -258,6 +279,141 @@ Route::get('/update-dosen-jadwal/{nip}/{jenis}', function ($nip, $jenis) {
 
     return "Updated $updated jadwal untuk dosen $nip ke '$jenis'";
 });
+
+Route::get('/run-update-jadwal', function () {
+    Artisan::call('jadwal:update-status');
+    return "Status jadwal berhasil diperbarui";
+});
+
+// Di routes/web.php
+Route::get('/jadwal/{id}/status', function ($id) {
+    // PERBAIKAN: Pastikan id yang diterima adalah numerik
+    if (!is_numeric($id)) {
+        // Coba cari jadwal berdasarkan event_id jika id bukan numerik
+        $jadwal = \App\Models\JadwalBimbingan::where('event_id', $id)->first();
+
+        if (!$jadwal) {
+            return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
+        }
+
+        // Gunakan ID numerik untuk update selanjutnya
+        $id = $jadwal->id;
+    } else {
+        $jadwal = \App\Models\JadwalBimbingan::find($id);
+
+        if (!$jadwal) {
+            return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
+        }
+    }
+
+    // Hitung jumlah pendaftar aktual dari database
+    $pendaftarCount = DB::table('usulan_bimbingans')
+        ->where('event_id', $jadwal->event_id)
+        ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+        ->count();
+
+    // PERBAIKAN: Jika status penuh, pastikan jumlah pendaftar = kapasitas
+    if ($jadwal->status === \App\Models\JadwalBimbingan::STATUS_PENUH) {
+        $pendaftarCount = $jadwal->kapasitas;
+    }
+
+    // Update jumlah pendaftar di database menggunakan ID numerik
+    DB::table('jadwal_bimbingans')
+        ->where('id', $id)
+        ->update(['jumlah_pendaftar' => $pendaftarCount]);
+
+    // Tentukan status berdasarkan kondisi - GUNAKAN KONSTANTA
+    $status = $jadwal->status;
+    if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
+        $status = \App\Models\JadwalBimbingan::STATUS_PENUH;
+        DB::table('jadwal_bimbingans')
+            ->where('id', $id)
+            ->update(['status' => $status]);
+    } else if (\Carbon\Carbon::parse($jadwal->waktu_selesai)->isPast()) {
+        $status = \App\Models\JadwalBimbingan::STATUS_SELESAI;
+        DB::table('jadwal_bimbingans')
+            ->where('id', $id)
+            ->update(['status' => $status]);
+    } else if ($status !== \App\Models\JadwalBimbingan::STATUS_DIBATALKAN) {
+        $status = \App\Models\JadwalBimbingan::STATUS_TERSEDIA;
+        DB::table('jadwal_bimbingans')
+            ->where('id', $id)
+            ->update(['status' => $status]);
+    }
+
+    // Status label yang lebih mudah dibaca - GUNAKAN ACCESSOR DARI MODEL
+    $statusLabel = match ($status) {
+        \App\Models\JadwalBimbingan::STATUS_TERSEDIA => 'Tersedia',
+        \App\Models\JadwalBimbingan::STATUS_PENUH => 'Penuh',
+        \App\Models\JadwalBimbingan::STATUS_SELESAI => 'Selesai',
+        \App\Models\JadwalBimbingan::STATUS_DIBATALKAN => 'Dibatalkan',
+        default => 'Unknown'
+    };
+
+    return response()->json([
+        'status' => $status,
+        'status_label' => $statusLabel,
+        'jumlah_pendaftar' => $pendaftarCount,
+        'kapasitas' => $jadwal->kapasitas
+    ]);
+});
+
+Route::get('/debug-jadwal-status/{id}', function ($id) {
+    $jadwal = \App\Models\JadwalBimbingan::find($id);
+
+    if (!$jadwal) {
+        return "Jadwal tidak ditemukan";
+    }
+
+    $pendaftarCount = DB::table('usulan_bimbingans')
+        ->where('event_id', $jadwal->event_id)
+        ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+        ->count();
+
+    return [
+        'id' => $jadwal->id,
+        'event_id' => $jadwal->event_id,
+        'status' => $jadwal->status,
+        'status_label' => $jadwal->status_label,
+        'jumlah_pendaftar_db' => $jadwal->jumlah_pendaftar,
+        'jumlah_pendaftar_hitung' => $pendaftarCount,
+        'kapasitas' => $jadwal->kapasitas,
+        'has_kuota_limit' => $jadwal->has_kuota_limit,
+        'waktu_mulai' => $jadwal->waktu_mulai,
+        'waktu_selesai' => $jadwal->waktu_selesai,
+        'sudah_lewat' => \Carbon\Carbon::parse($jadwal->waktu_selesai)->isPast()
+    ];
+});
+
+Route::get('/debug-event-id/{id}', function ($id) {
+    $jadwal = \App\Models\JadwalBimbingan::where('event_id', $id)->first();
+    if ($jadwal) {
+        return [
+            'found_by_event_id' => true,
+            'id' => $jadwal->id,
+            'event_id' => $jadwal->event_id
+        ];
+    }
+
+    $jadwal = \App\Models\JadwalBimbingan::find($id);
+    if ($jadwal) {
+        return [
+            'found_by_id' => true,
+            'id' => $jadwal->id,
+            'event_id' => $jadwal->event_id
+        ];
+    }
+
+    return ['error' => 'Not found with either method'];
+});
+
+// Route untuk pengecekan status autentikasi
+Route::get('/auth-check', function () {
+    if (Auth::guard('mahasiswa')->check() || Auth::guard('dosen')->check()) {
+        return response()->json(['authenticated' => true], 200);
+    }
+    return response()->json(['authenticated' => false], 401);
+})->middleware('web');
 
 // Logout route
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

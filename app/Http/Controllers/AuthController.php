@@ -56,12 +56,32 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        // Cache control header - penting untuk mengirim ke browser agar tidak menyimpan halaman terproteksi
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Cache-Control: post-check=0, pre-check=0", false);
+        header("Pragma: no-cache");
+        header("Expires: Wed, 11 Jan 1984 05:00:00 GMT");
+
+        // Logout dari guard yang aktif
         if (Auth::guard('mahasiswa')->check()) {
             Auth::guard('mahasiswa')->logout();
         } else if (Auth::guard('dosen')->check()) {
             Auth::guard('dosen')->logout();
         }
-        
-        return redirect()->route('login');
+
+        // Invalidasi sesi dan regenerasi token
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // Set cookie dengan nilai berbeda untuk memaksa browser menghapus cache
+        $response = redirect()->route('login');
+        $response->withCookie(cookie('LOGOUT_CACHE_BUSTER', uniqid(), 30));
+
+        // Set header anti-cache tambahan
+        $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+        $response->header('Pragma', 'no-cache');
+        $response->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+
+        return $response;
     }
 }

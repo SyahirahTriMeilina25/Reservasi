@@ -1,4 +1,3 @@
-{{-- resources/views/bimbingan/mahasiswa/usulanbimbingan.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Dashboard Bimbingan')
@@ -47,6 +46,220 @@
             background-color: #17a2b8;
             color: white !important;
         }
+        #modalSelesai .modal-dialog {
+        transform: scale(0.5);
+        opacity: 0;
+        transition: all 0.3s ease-in-out;
+        }
+
+        #modalSelesai.show .modal-dialog {
+        transform: scale(1);
+        opacity: 1;
+        }
+
+        /* Animasi untuk icon check di dalam modal */
+        @keyframes pulse-check {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.15);
+        }
+        100% {
+            transform: scale(1);
+        }
+        }
+
+        #modalSelesai .bi-check-circle-fill {
+        animation: pulse-check 1.5s infinite;
+        }
+
+        /* Animasi untuk tombol saat hover */
+        #modalSelesai .btn {
+        transition: all 0.3s ease;
+        }
+
+        #modalSelesai .btn-success:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(10, 166, 101, 0.4);
+        }
+
+        #modalSelesai .btn-secondary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(75, 85, 99, 0.3);
+        }
+
+        /* Animasi background pada icon container */
+        @keyframes glow {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+        }
+
+        #modalSelesai .rounded-circle {
+        animation: glow 2s infinite;
+        transition: all 0.3s ease;
+        }
+
+    /* ==============================================
+    Style search 
+    ============================================== */
+
+    /* Container untuk search box */
+    .search-container {
+    position: relative;
+    width: 100%;
+    transition: all 0.3s ease;
+    margin-bottom: 0;
+    max-width: 300px; /* Batasi lebar maksimal */
+    margin-left: auto; /* Posisikan di kanan */
+    }
+
+    @media (max-width: 768px) {
+    .search-container {
+        max-width: 100%; /* Pada layar kecil, biarkan penuh */
+    }
+    }
+
+    /* Input search box */
+    .search-box {
+    width: 100%;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 50px;
+    padding: 10px 40px 10px 16px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    font-size: 14px;
+    color: #495057;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .search-box:focus {
+    background-color: #fff;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    outline: none;
+    }
+
+    /* Placeholder styling */
+    .search-box::placeholder {
+    color: #adb5bd;
+    transition: opacity 0.2s;
+    }
+
+    .search-box:focus::placeholder {
+    opacity: 0.5;
+    }
+
+    /* Icon search */
+    .search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+    }
+
+    /* Aturan baru: sembunyikan icon search ketika ada input */
+    .search-box:not(:placeholder-shown) + .search-icon {
+    opacity: 0;
+    visibility: hidden;
+    }
+
+    /* Clear button */
+    .search-clear {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    cursor: pointer;
+    display: none; /* Hidden by default, will be shown via JS */
+    font-size: 14px;
+    background: #e9ecef;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    align-items: center; /* For flex display */
+    justify-content: center; /* For flex display */
+    z-index: 2;
+    }
+
+    .search-clear:hover {
+    background-color: #dc3545;
+    color: white;
+    transform: translateY(-50%) scale(1.1);
+    }
+
+    /* Styling untuk text yang di-highlight */
+    .highlight {
+    background-color: #FFC107 !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    padding: 0 3px !important;
+    border-radius: 2px !important;
+    display: inline-block !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    }
+
+    @keyframes pulse {
+    0% { background-color: rgba(255, 193, 7, 0.3); }
+    50% { background-color: rgba(255, 193, 7, 0.6); }
+    100% { background-color: rgba(255, 193, 7, 0.3); }
+    }
+
+    /* Styling untuk baris "tidak ada hasil" */
+    .no-results-row td {
+    padding: 16px !important;
+    background-color: #f8f9fa !important;
+    color: #6c757d;
+    font-style: italic;
+    }
+
+    .no-results-row i {
+    margin-right: 8px;
+    color: #6c757d;
+    }
+
+    /* Responsif untuk layar sedang */
+    @media (max-width: 992px) {
+    .row .col-md-6:last-child {
+        margin-top: 15px;
+    }
+    
+    .search-container {
+        max-width: 100%;
+    }
+    }
+
+    /* Responsif untuk layar kecil/mobile */
+    @media (max-width: 576px) {
+    .search-box {
+        padding: 8px 36px 8px 14px;
+        font-size: 13px;
+    }
+    
+    .search-icon {
+        right: 14px;
+        font-size: 14px;
+    }
+    
+    .search-clear {
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+        right: 14px;
+    }
+}
     </style>
 @endpush
 
@@ -85,8 +298,8 @@
             </div>
 
             <div class="card-body p-4">
-                <div class="row mb-3">
-                    <div class="col-md-6">
+                <div class="row mb-3 align-items-center">
+                    <div class="col-lg-6 col-md-6">
                         <div class="d-flex align-items-center">
                             <label class="me-2">Tampilkan</label>
                             <select class="form-select form-select-sm w-auto"
@@ -97,6 +310,13 @@
                                 <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
                             </select>
                             <label class="ms-2">entries</label>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6">
+                        <div class="search-container">
+                            <input type="text" id="searchInput" class="search-box" placeholder="Cari data..." autocomplete="off" aria-label="Cari data">
+                            <i class="bi bi-search search-icon"></i>
+                            <span class="search-clear" id="clearSearch">×</span>
                         </div>
                     </div>
                 </div>
@@ -248,9 +468,15 @@
                                                 <td>{{ $item->lokasi && trim($item->lokasi) !== '' ? $item->lokasi : '-' }}
                                                 </td>
                                                 <td>{{ $item->nomor_antrian ?? '-' }}</td>
-                                                <td class="fw-bold {{ $item->status === 'SELESAI' ? 'bg-success' : ($item->status === 'DITOLAK' ? 'bg-danger' : ($item->status === 'DIBATALKAN' ? 'bg-secondary' : 'bg-danger')) }} text-white">
-                                                    {{ $item->status }}
-                                                </td>
+                                                <td class="fw-bold {{ 
+                                                    $item->status === 'DISETUJUI' ? 'bg-success' : (
+                                                        $item->status === 'DITOLAK' ? 'bg-danger' : (
+                                                            $item->status === 'DIBATALKAN' ? 'bg-secondary' : (
+                                                                $item->status === 'SELESAI' ? 'bg-primary' : 'bg-warning'
+                                                            )
+                                                        )
+                                                    ) 
+                                                }} text-white">{{ $item->status }}</td>
                                                 <td>
                                                     <div class="action-icons">
                                                         <a href="{{ route('mahasiswa.aksiInformasi', $item->id) }}"
@@ -292,12 +518,12 @@
                             @if ($activeTab == 'usulan')
                                 @if ($usulan->onFirstPage())
                                     <li class="page-item disabled">
-                                        <span class="page-link">Sebelumnya</span>
+                                        <span class="page-link">« Sebelumnya</span>
                                     </li>
                                 @else
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $usulan->previousPageUrl() }}&tab=usulan">Sebelumnya</a>
+                                            href="{{ $usulan->previousPageUrl() }}&tab=usulan">« Sebelumnya</a>
                                     </li>
                                 @endif
 
@@ -313,22 +539,22 @@
                                 @if ($usulan->hasMorePages())
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $usulan->nextPageUrl() }}&tab=usulan">Selanjutnya</a>
+                                            href="{{ $usulan->nextPageUrl() }}&tab=usulan">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
-                                        <span class="page-link">Selanjutnya</span>
+                                        <span class="page-link">Selanjutnya »</span>
                                     </li>
                                 @endif
                             @elseif($activeTab == 'jadwal')
                                 @if ($daftarDosen->onFirstPage())
                                     <li class="page-item disabled">
-                                        <span class="page-link">Sebelumnya</span>
+                                        <span class="page-link">« Sebelumnya</span>
                                     </li>
                                 @else
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $daftarDosen->previousPageUrl() }}&tab=jadwal">Sebelumnya</a>
+                                            href="{{ $daftarDosen->previousPageUrl() }}&tab=jadwal">« Sebelumnya</a>
                                     </li>
                                 @endif
 
@@ -342,22 +568,22 @@
                                 @if ($daftarDosen->hasMorePages())
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $daftarDosen->nextPageUrl() }}&tab=jadwal">Selanjutnya</a>
+                                            href="{{ $daftarDosen->nextPageUrl() }}&tab=jadwal">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
-                                        <span class="page-link">Selanjutnya</span>
+                                        <span class="page-link">Selanjutnya »</span>
                                     </li>
                                 @endif
                             @elseif($activeTab == 'riwayat')
                                 @if ($riwayat->onFirstPage())
                                     <li class="page-item disabled">
-                                        <span class="page-link">Sebelumnya</span>
+                                        <span class="page-link">« Sebelumnya</span>
                                     </li>
                                 @else
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $riwayat->previousPageUrl() }}&tab=riwayat">Sebelumnya</a>
+                                            href="{{ $riwayat->previousPageUrl() }}&tab=riwayat">« Sebelumnya</a>
                                     </li>
                                 @endif
 
@@ -371,11 +597,11 @@
                                 @if ($riwayat->hasMorePages())
                                     <li class="page-item">
                                         <a class="page-link"
-                                            href="{{ $riwayat->nextPageUrl() }}&tab=riwayat">Selanjutnya</a>
+                                            href="{{ $riwayat->nextPageUrl() }}&tab=riwayat">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
-                                        <span class="page-link">Selanjutnya</span>
+                                        <span class="page-link">Selanjutnya »</span>
                                     </li>
                                 @endif
                             @endif
@@ -388,20 +614,27 @@
     <!-- Modal Selesai -->
     <div class="modal fade" id="modalSelesai" tabindex="-1" aria-labelledby="modalSelesaiLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-light">
+            <div class="modal-content rounded-4 shadow border-0">
+                <div class="modal-header border-0 bg-success text-white">
                     <h5 class="modal-title fw-bold" id="modalSelesaiLabel">
-                        <i class="bi bi-check2-circle text-success me-2"></i>
                         Konfirmasi Selesai Bimbingan
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-lg me-2"></i>Batal
+                <div class="modal-body text-center p-4">
+                    <div class="d-flex justify-content-center mb-4">
+                        <div class="rounded-circle bg-success bg-opacity-10" style="width: 90px; height: 90px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-check-circle-fill text-success" style="font-size: 42px;"></i>
+                        </div>
+                    </div>
+                    <p class="mb-1">Apakah Anda yakin sesi bimbingan ini telah selesai?</p>
+                </div>
+                <div class="modal-footer justify-content-center border-0 pb-4">
+                    <button type="button" class="btn btn-secondary px-4 me-2" data-bs-dismiss="modal">
+                        Batal
                     </button>
-                    <button type="button" class="btn btn-success" id="confirmSelesai">
-                        <i class="bi bi-check2-circle me-2"></i>Selesai
+                    <button type="button" class="btn btn-success px-4" id="confirmSelesai">
+                        Ya, Selesai
                     </button>
                 </div>
             </div>
@@ -413,83 +646,310 @@
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                let currentId = null;
-                const modalSelesai = new bootstrap.Modal(document.getElementById('modalSelesai'));
+    // Variabel untuk menyimpan ID bimbingan yang akan diselesaikan
+    let currentSelesaiId = null;
+    
+    // Inisialisasi modal dengan Bootstrap
+    const bsModalSelesai = new bootstrap.Modal(document.getElementById('modalSelesai'));
 
-                // Setup modal handler untuk tombol selesai
-                document.querySelectorAll('.selesai-btn').forEach(button => {
-                    button.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        currentId = this.getAttribute('data-id');
-                        modalSelesai.show();
-                    });
-                });
+    // Setup handler untuk semua tombol selesai
+    document.querySelectorAll('.selesai-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Ambil ID dari atribut data-id pada tombol
+            currentSelesaiId = this.getAttribute('data-id');
+            console.log('Button selesai diklik, ID:', currentSelesaiId);
+            
+            // Ambil informasi baris dari tabel
+            try {
+                const row = this.closest('tr');
+                if (row) {
+                    const mahasiswaNama = row.querySelector('td:nth-child(3)').textContent.trim();
+                    const jenisBimbingan = row.querySelector('td:nth-child(4)').textContent.trim();
+                    
+                    // Update isi modal dengan informasi kontekstual
+                    const mhsNameConfirm = document.getElementById('mhs-name-confirm');
+                    const jenisBimbinganConfirm = document.getElementById('jenis-bimbingan-confirm');
+                    
+                    if (mhsNameConfirm) mhsNameConfirm.textContent = mahasiswaNama;
+                    if (jenisBimbinganConfirm) jenisBimbinganConfirm.textContent = jenisBimbingan;
+                }
+            } catch (error) {
+                console.error('Error saat mengambil data baris:', error);
+            }
+            
+            // Tampilkan modal konfirmasi
+            bsModalSelesai.show();
+        });
+    });
 
-                // Handle konfirmasi selesai
-                document.getElementById('confirmSelesai')?.addEventListener('click', async function() {
-                    if (!currentId) return;
+    // Handler untuk tombol konfirmasi pada modal
+    const confirmSelesaiBtn = document.getElementById('confirmSelesai');
+    if (confirmSelesaiBtn) {
+        confirmSelesaiBtn.addEventListener('click', async function() {
+            if (!currentSelesaiId) {
+                console.error('ID tidak valid');
+                return;
+            }
 
-                    try {
-                        // Close the confirmation modal first
-                        modalSelesai.hide();
+            try {
+                // Tutup modal konfirmasi
+                bsModalSelesai.hide();
 
-                        // Show loading state
-                        Swal.fire({
-                            title: 'Memproses',
-                            text: 'Mohon tunggu...',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-
-                        // Send the request
-                        const response = await fetch(`/usulanbimbingan/selesai/${currentId}`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                    .getAttribute('content'),
-                                'Accept': 'application/json'
-                            }
-                        });
-
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            // Show success notification
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil!',
-                                text: data.message || 'Bimbingan telah diselesaikan',
-                                showConfirmButton: false,
-                                timer: 1500
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            throw new Error(data.message || 'Terjadi kesalahan');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Tidak dapat memproses permintaan',
-                            text: 'Silakan coba beberapa saat lagi',
-                            confirmButtonColor: '#1a73e8'
-                        });
+                // Tampilkan loading state dengan SweetAlert
+                Swal.fire({
+                    title: 'Memproses',
+                    text: 'Mohon tunggu...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
                     }
                 });
 
-                // Reset currentId when modal is closed
-                document.getElementById('modalSelesai')?.addEventListener('hidden.bs.modal', function() {
-                    currentId = null;
+                // Kirim request ke server
+                const response = await fetch(`/usulanbimbingan/selesai/${currentSelesaiId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
+                            .getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server response error: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Tampilkan notifikasi sukses
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: data.message || 'Bimbingan telah diselesaikan',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        // Reload halaman setelah sukses
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak dapat memproses permintaan',
+                    text: error.message || 'Silakan coba beberapa saat lagi',
+                    confirmButtonColor: '#1a73e8'
+                });
+            }
+        });
+    }
+
+    // Reset ID ketika modal ditutup
+    const modalElement = document.getElementById('modalSelesai');
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            currentSelesaiId = null;
+        });
+    }
+    // FITUR PENCARIAN - Perbaikan
+    // Inisialisasi pencarian untuk tab yang aktif saat ini 
+    function initializeSearch() {
+        const activeTab = document.querySelector('.tab-pane.active');
+        if (!activeTab) return;
+        
+        const searchInput = document.getElementById('searchInput');
+        const clearButton = document.getElementById('clearSearch');
+        const table = activeTab.querySelector('table');
+        
+        if (searchInput && clearButton && table) {
+            initializeSearchForTable(searchInput, clearButton, table);
+        }
+    }
+    
+    // Panggil fungsi inisialisasi pencarian saat halaman dimuat
+    initializeSearch();
+    
+    // Tambahkan event listener untuk perubahan tab
+    document.querySelectorAll('.nav-link').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Tunggu sesaat sampai tab aktif benar-benar diubah
+            setTimeout(initializeSearch, 100);
+        });
+    });
+});
+
+// Fungsi untuk menginisialisasi pencarian pada tabel (pindahkan ke luar closure utama)
+function initializeSearchForTable(searchInput, clearButton, table) {
+    // Pastikan semua elemen ada
+    if (!searchInput || !clearButton || !table) return;
+    
+    // Reset status pencarian
+    searchInput.value = '';
+    clearButton.style.display = 'none';
+    
+    // Kembalikan semua konten sel asli
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        cells.forEach(cell => {
+            if (cell.hasAttribute('data-original')) {
+                cell.textContent = cell.getAttribute('data-original');
+                cell.removeAttribute('data-original');
+            }
+        });
+        row.style.display = '';
+    });
+    
+    // Hapus event listener lama (jika ada)
+    searchInput.removeEventListener('input', handleSearchInput);
+    clearButton.removeEventListener('click', handleClearSearch);
+    
+    // Tambahkan event untuk input pencarian
+    searchInput.addEventListener('input', handleSearchInput);
+    
+    // Event untuk tombol clear
+    clearButton.addEventListener('click', handleClearSearch);
+    
+    function handleSearchInput() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        // Tampilkan/sembunyikan tombol clear
+        clearButton.style.display = searchTerm ? 'flex' : 'none';
+        
+        // Sembunyikan icon search jika ada input
+        const searchIcon = this.nextElementSibling;
+        if (searchIcon && searchIcon.classList.contains('search-icon')) {
+            searchIcon.style.opacity = searchTerm ? '0' : '1';
+            searchIcon.style.visibility = searchTerm ? 'hidden' : 'visible';
+        }
+        
+        // Filter tabel
+        const rows = table.querySelectorAll('tbody tr');
+        let matchFound = false;
+        
+        // Hapus pesan tidak ditemukan jika ada
+        const existingNoResults = table.querySelector('.no-results-row');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            let rowMatch = false;
+            
+            cells.forEach(cell => {
+                const cellText = cell.textContent;
+                const lowerCellText = cellText.toLowerCase();
+                
+                // Jika sel berisi istilah pencarian
+                if (lowerCellText.includes(searchTerm)) {
+                    rowMatch = true;
+                    
+                    // Hanya tambahkan highlighting jika kita memiliki kata pencarian
+                    if (searchTerm) {
+                        // Simpan teks asli sebelum kita memodifikasinya
+                        if (!cell.hasAttribute('data-original')) {
+                            cell.setAttribute('data-original', cellText);
+                        }
+                        
+                        // Escape karakter khusus regex
+                        const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        
+                        // Highlight kata yang cocok
+                        const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
+                        const highlightedText = cell.getAttribute('data-original').replace(regex, 
+                            '<span class="highlight">$1</span>'
+                        );
+                        
+                        // Perbarui HTML
+                        cell.innerHTML = highlightedText;
+                    }
+                } else if (cell.hasAttribute('data-original') && searchTerm) {
+                    // Kembalikan ke teks asli jika sel ini tidak lagi cocok
+                    cell.textContent = cell.getAttribute('data-original');
+                    cell.removeAttribute('data-original');
+                }
+            });
+            
+            // Tampilkan/sembunyikan baris berdasarkan kecocokan
+            if (rowMatch || !searchTerm) {
+                row.style.display = '';
+                matchFound = true;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Jika pencarian dihapus, kembalikan semua sel ke teks asli
+        if (!searchTerm) {
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    if (cell.hasAttribute('data-original')) {
+                        cell.textContent = cell.getAttribute('data-original');
+                        cell.removeAttribute('data-original');
+                    }
                 });
             });
-        </script>
-    @endpush
+        }
+        
+        // Tampilkan pesan jika tidak ada hasil
+        if (!matchFound && searchTerm) {
+            const tbody = table.querySelector('tbody');
+            if (tbody) {
+                const colCount = table.querySelectorAll('thead th').length;
+                const noResultsRow = document.createElement('tr');
+                noResultsRow.className = 'no-results-row';
+                noResultsRow.innerHTML = `
+                    <td colspan="${colCount}" class="text-center py-3">
+                        <i class="bi bi-search me-2"></i> Tidak ada data yang cocok dengan pencarian "${searchTerm}"
+                    </td>
+                `;
+                tbody.appendChild(noResultsRow);
+            }
+        }
+    }
+    
+    function handleClearSearch() {
+        searchInput.value = '';
+        
+        // Kembalikan semua konten sel asli
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                if (cell.hasAttribute('data-original')) {
+                    cell.textContent = cell.getAttribute('data-original');
+                    cell.removeAttribute('data-original');
+                }
+            });
+            row.style.display = ''; // Tampilkan semua baris
+        });
+        
+        // Hapus pesan "tidak ada hasil" jika ada
+        const existingNoResults = table.querySelector('.no-results-row');
+        if (existingNoResults) {
+            existingNoResults.remove();
+        }
+        
+        // Sembunyikan tombol clear dan kembalikan ikon pencarian
+        this.style.display = 'none';
+        const searchIcon = searchInput.nextElementSibling;
+        if (searchIcon && searchIcon.classList.contains('search-icon')) {
+            searchIcon.style.opacity = '1';
+            searchIcon.style.visibility = 'visible';
+        }
+        
+        searchInput.focus();
+    }
+}
+    </script>
+@endpush
 @endsection

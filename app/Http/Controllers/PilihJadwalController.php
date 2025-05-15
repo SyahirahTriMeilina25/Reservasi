@@ -86,111 +86,133 @@ class PilihJadwalController extends Controller
     }
 
     public function store(Request $request)
-    {
-        try {
-            if (!$this->googleCalendarController->validateAndRefreshToken()) {
-                return response()->json(['error' => 'Belum terautentikasi dengan Google Calendar'], 401);
-            }
-            Log::info('Request pengajuan bimbingan:', $request->all());
+{
+    try {
+        if (!$this->googleCalendarController->validateAndRefreshToken()) {
+            return response()->json(['error' => 'Belum terautentikasi dengan Google Calendar'], 401);
+        }
+        Log::info('Request pengajuan bimbingan:', $request->all());
 
-            // Validasi request
-            $request->validate([
-                'nip' => 'required|exists:dosens,nip',
-                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm',
-                'jadwal_id' => 'required|exists:jadwal_bimbingans,id',
-                'deskripsi' => 'nullable|string'
-            ]);
+        // Validasi request
+        $request->validate([
+            'nip' => 'required|exists:dosens,nip',
+            'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm,lainnya',
+            'jadwal_id' => 'required|exists:jadwal_bimbingans,id',
+            'deskripsi' => 'nullable|string'
+        ]);
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            // Cek jadwal dan dosen
-            $jadwal = DB::table('jadwal_bimbingans as jb')
-                ->join('dosens as d', 'jb.nip', '=', 'd.nip')
-                ->where('jb.id', $request->jadwal_id)
-                ->where('jb.status', 'tersedia')
-                ->where('jb.waktu_mulai', '>', now())
-                ->select('jb.*', 'd.nama as dosen_nama')
-                ->first();
+        // Cek jadwal dan dosen
+        $jadwal = DB::table('jadwal_bimbingans as jb')
+            ->join('dosens as d', 'jb.nip', '=', 'd.nip')
+            ->where('jb.id', $request->jadwal_id)
+            ->where('jb.status', 'tersedia')
+            ->where('jb.waktu_mulai', '>', now())
+            ->select('jb.*', 'd.nama as dosen_nama')
+            ->first();
 
-            if (!$jadwal) {
-                throw new \Exception('Jadwal tidak tersedia atau sudah penuh');
-            }
+        if (!$jadwal) {
+            throw new \Exception('Jadwal tidak tersedia atau sudah penuh');
+        }
 
-            // Cek apakah mahasiswa sudah memiliki bimbingan yang sama
-            $existingBimbingan = DB::table('usulan_bimbingans')
-                ->where('nim', Auth::guard('mahasiswa')->user()->nim)
-                ->where('jenis_bimbingan', $request->jenis_bimbingan)
-                ->whereIn('status', ['USULAN', 'DITERIMA'])
-                ->exists();
-
-            if ($existingBimbingan) {
-                throw new \Exception('Anda masih memiliki pengajuan bimbingan yang dalam proses');
-            }
-
-            // Cek bentrok jadwal
-            $bentrok = DB::table('usulan_bimbingans')
-                ->where('nim', Auth::guard('mahasiswa')->user()->nim)
-                ->where('tanggal', Carbon::parse($jadwal->waktu_mulai)->toDateString())
-                ->where(function ($query) use ($jadwal) {
-                    $query->whereBetween('waktu_mulai', [
+        // Cek bentrok jadwal
+        $bentrok = DB::table('usulan_bimbingans')
+            ->where('nim', auth()->user()->nim)
+            ->where('tanggal', Carbon::parse($jadwal->waktu_mulai)->toDateString())
+            ->where(function ($query) use ($jadwal) {
+                $query->whereBetween('waktu_mulai', [
+                    Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
+                    Carbon::parse($jadwal->waktu_selesai)->format('H:i')
+                ])
+                    ->orWhereBetween('waktu_selesai', [
                         Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
                         Carbon::parse($jadwal->waktu_selesai)->format('H:i')
-                    ])
-                        ->orWhereBetween('waktu_selesai', [
-                            Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
-                            Carbon::parse($jadwal->waktu_selesai)->format('H:i')
-                        ]);
-                })
-                ->where('status', '!=', 'DITOLAK')
-                ->exists();
+                    ]);
+            })
+            ->whereIn('status', ['USULAN', 'DISETUJUI']) // PERBAIKAN: Hanya cek yang aktif
+            ->exists();
 
-            if ($bentrok) {
-                throw new \Exception('Anda sudah memiliki jadwal bimbingan di waktu yang sama');
-            }
-
-            $mahasiswa = Auth::guard('mahasiswa')->user();
-
-            // Simpan ke database
-            $bimbingan = UsulanBimbingan::create([
-                'nim' => $mahasiswa->nim,
-                'nip' => $request->nip,
-                'dosen_nama' => $jadwal->dosen_nama,
-                'mahasiswa_nama' => $mahasiswa->nama,
-                'jenis_bimbingan' => $request->jenis_bimbingan,
-                'tanggal' => Carbon::parse($jadwal->waktu_mulai)->toDateString(),
-                'waktu_mulai' => Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
-                'waktu_selesai' => Carbon::parse($jadwal->waktu_selesai)->format('H:i'),
-                'lokasi' => $jadwal->lokasi,
-                'deskripsi' => $request->deskripsi,
-                'status' => 'USULAN',
-                'event_id' => $jadwal->event_id,
-                'nomor_antrian' => null,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-
-            DB::commit();
-
-            Log::info('Berhasil membuat usulan bimbingan:', [
-                'bimbingan_id' => $bimbingan,
-                'event_id' => $jadwal->event_id
-            ]);
-
+        if ($bentrok) {
             return response()->json([
-                'status' => 'success',
-                'message' => 'Jadwal bimbingan berhasil diajukan',
-                'data' => $bimbingan
+                'available' => false,
+                'message' => 'Anda sudah memiliki jadwal bimbingan di waktu yang sama'
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error membuat jadwal bimbingan: ' . $e->getMessage());
+        }
+
+        $mahasiswa = Auth::guard('mahasiswa')->user();
+
+        // PERBAIKAN: Cek hanya usulan yang aktif
+        $existingActiveUsulan = UsulanBimbingan::where('nim', $mahasiswa->nim)
+            ->where('event_id', $jadwal->event_id)
+            ->whereIn('status', ['USULAN', 'DISETUJUI'])
+            ->first();
+
+        if ($existingActiveUsulan) {
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => 'Anda sudah memiliki usulan aktif untuk jadwal ini'
+            ], 400);
         }
-    }
 
+        // PERBAIKAN: Hapus usulan lama yang tidak aktif untuk jadwal ini
+        UsulanBimbingan::where('nim', $mahasiswa->nim)
+            ->where('event_id', $jadwal->event_id)
+            ->whereIn('status', ['DITOLAK', 'DIBATALKAN', 'SELESAI'])
+            ->delete();
+
+        // Simpan ke database
+        $bimbingan = UsulanBimbingan::create([
+            'nim' => $mahasiswa->nim,
+            'nip' => $request->nip,
+            'dosen_nama' => $jadwal->dosen_nama,
+            'mahasiswa_nama' => $mahasiswa->nama,
+            'jenis_bimbingan' => $request->jenis_bimbingan,
+            'tanggal' => Carbon::parse($jadwal->waktu_mulai)->toDateString(),
+            'waktu_mulai' => Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
+            'waktu_selesai' => Carbon::parse($jadwal->waktu_selesai)->format('H:i'),
+            'lokasi' => null, // Lokasi akan diisi oleh dosen saat persetujuan
+            'deskripsi' => $request->deskripsi,
+            'status' => 'USULAN',
+            'event_id' => $jadwal->event_id,
+            'nomor_antrian' => null,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        // Update jumlah pendaftar dan status jadwal
+        $jadwalModel = JadwalBimbingan::find($request->jadwal_id);
+        if ($jadwalModel) {
+            $jadwalModel->jumlah_pendaftar = $jadwalModel->jumlah_pendaftar + 1;
+            // Periksa apakah jadwal sudah penuh setelah pendaftaran ini
+            if ($jadwalModel->has_kuota_limit && $jadwalModel->jumlah_pendaftar >= $jadwalModel->kapasitas) {
+                $jadwalModel->status = JadwalBimbingan::STATUS_PENUH;
+            }
+            $jadwalModel->save();
+        }
+
+        DB::commit();
+
+        Log::info('Berhasil membuat usulan bimbingan:', [
+            'bimbingan_id' => $bimbingan->id,
+            'event_id' => $jadwal->event_id
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Jadwal bimbingan berhasil diajukan dan menunggu persetujuan dosen',
+            'data' => $bimbingan
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error membuat jadwal bimbingan: ' . $e->getMessage());
+        Log::error('Stack trace: ' . $e->getTraceAsString());
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
     public function getAvailableJadwal(Request $request)
     {
         try {
@@ -256,21 +278,16 @@ class PilihJadwalController extends Controller
                     'jb.kapasitas',
                     'jb.sisa_kapasitas',
                     'jb.has_kuota_limit',
+                    'jb.jumlah_pendaftar',
+                    'jb.status',
                     'd.nama as dosen_nama'
                 )
                 ->where('jb.nip', $nip)
-                ->where('jb.status', 'tersedia')
+                ->where('jb.status', 'tersedia') // Hanya tampilkan yang tersedia
                 ->where('jb.waktu_mulai', '>', now())
                 ->where(function ($query) use ($jenisBimbingan) {
-                    // PERBAIKAN DI SINI: Hanya tampilkan jadwal dengan jenis bimbingan yang cocok,
-                    // tanpa menampilkan jadwal null
                     $query->where('jb.jenis_bimbingan', $jenisBimbingan)
                         ->orWhereNull('jb.jenis_bimbingan');
-                })
-                ->where(function ($query) {
-                    // Filter jadwal dengan kuota tersedia
-                    $query->where('jb.has_kuota_limit', false)
-                        ->orWhere('jb.sisa_kapasitas', '>', 0);
                 })
                 ->get();
 
@@ -289,7 +306,33 @@ class PilihJadwalController extends Controller
             // Transform jadwals untuk format yang sesuai dengan frontend
             $transformedJadwals = [];
             foreach ($jadwals as $jadwal) {
-                // Gunakan waktu_mulai sebagai tanggal dan waktu
+                // Hitung jumlah pendaftar dari database
+                $pendaftarCount = DB::table('usulan_bimbingans')
+                    ->where('event_id', $jadwal->event_id)
+                    ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+                    ->count();
+
+                // Update status jadwal
+                $jadwalModel = JadwalBimbingan::where('event_id', $jadwal->event_id)->first();
+                if ($jadwalModel) {
+                    $jadwalModel->jumlah_pendaftar = $pendaftarCount;
+                    $jadwalModel->updateStatus();
+
+                    // Refresh data dari database
+                    $jadwal->jumlah_pendaftar = $pendaftarCount;
+                    $jadwal->status = $jadwalModel->status;
+                    $jadwal->sisa_kapasitas = $jadwalModel->sisa_kapasitas;
+                }
+            }
+
+            // Filter lagi jadwal yang tersedia setelah update status
+            $jadwals = collect($jadwals)->filter(function ($jadwal) {
+                return $jadwal->status === 'tersedia';
+            })->values();
+
+            // Transform jadwals untuk frontend
+            $transformedJadwals = [];
+            foreach ($jadwals as $jadwal) {
                 $tanggal = Carbon::parse($jadwal->waktu_mulai)->format('Y-m-d');
                 $waktuMulai = Carbon::parse($jadwal->waktu_mulai)->format('H:i');
                 $waktuSelesai = Carbon::parse($jadwal->waktu_selesai)->format('H:i');
@@ -297,31 +340,17 @@ class PilihJadwalController extends Controller
                 $hari = Carbon::parse($jadwal->waktu_mulai)->locale('id')->isoFormat('dddd');
                 $tanggalFormat = Carbon::parse($jadwal->waktu_mulai)->locale('id')->isoFormat('D MMMM YYYY');
 
-                // Format display text dengan waktu mulai dan selesai
+                // Format display text dengan status yang akurat
                 $displayText = "{$hari}, {$tanggalFormat} | {$waktuMulai}-{$waktuSelesai}";
 
-                Log::info('Nilai has_kuota_limit: ' . json_encode($jadwal->has_kuota_limit));
-                Log::info('Nilai kapasitas: ' . $jadwal->kapasitas);
-                Log::info('Nilai sisa_kapasitas: ' . $jadwal->sisa_kapasitas);
+                if ($jadwal->kapasitas > 0 && $jadwal->has_kuota_limit) {
+                    // Tampilkan status kuota yang akurat
+                    $displayText .= " | Kuota: {$jadwal->jumlah_pendaftar}/{$jadwal->kapasitas} terpakai";
 
-                // Tambahkan informasi kuota
-                if ($jadwal->kapasitas > 0) {
-                    // Hitung pengajuan untuk jadwal ini, termasuk yang sudah DISETUJUI
-                    $pengajuanData = DB::table('usulan_bimbingans')
-                        ->where('event_id', $jadwal->event_id)
-                        ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI']) // Tambahkan DISETUJUI
-                        ->get();
-
-                    $pengajuanCount = $pengajuanData->count();
-
-                    Log::info('Pengajuan untuk jadwal ' . $jadwal->id . ':', [
-                        'event_id' => $jadwal->event_id,
-                        'count' => $pengajuanCount,
-                        'data' => $pengajuanData->toArray(),
-                        'status_included' => ['USULAN', 'DITERIMA', 'DISETUJUI']
-                    ]);
-                    // Tampilkan jumlah slot yang terpakai dari total kapasitas
-                    $displayText .= " | Kuota: {$pengajuanCount}/{$jadwal->kapasitas} terpakai";
+                    // Tandai jadwal penuh jika jumlah pendaftar >= kapasitas
+                    if ($jadwal->jumlah_pendaftar >= $jadwal->kapasitas) {
+                        continue; // Skip jadwal yang penuh
+                    }
                 } else {
                     $displayText .= " | Kuota Tidak Terbatas";
                 }
@@ -334,7 +363,11 @@ class PilihJadwalController extends Controller
                     'waktu_selesai' => $waktuSelesai,
                     'text' => $displayText,
                     'is_selected' => false,
-                    'sisa_kapasitas' => $jadwal->sisa_kapasitas
+                    'sisa_kapasitas' => $jadwal->sisa_kapasitas,
+                    'jumlah_pendaftar' => $jadwal->jumlah_pendaftar,
+                    'has_kuota_limit' => $jadwal->has_kuota_limit,
+                    'kapasitas' => $jadwal->kapasitas,
+                    'status' => $jadwal->status
                 ];
             }
 
@@ -358,7 +391,7 @@ class PilihJadwalController extends Controller
         try {
             $request->validate([
                 'jadwal_id' => 'required|exists:jadwal_bimbingans,id',
-                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm'
+                'jenis_bimbingan' => 'required|in:skripsi,kp,akademik,konsultasi,mbkm,lainnya'
             ]);
 
             Log::info('Check Availability Request:', [
@@ -373,6 +406,7 @@ class PilihJadwalController extends Controller
                 ->first();
 
             if (!$jadwal) {
+                Log::info('Jadwal tidak ditemukan');
                 return response()->json([
                     'available' => false,
                     'message' => 'Jadwal tidak ditemukan'
@@ -388,6 +422,7 @@ class PilihJadwalController extends Controller
 
             // Periksa apakah jadwal sesuai dengan jenis bimbingan yang dipilih
             if (property_exists($jadwal, 'jenis_bimbingan') && $jadwal->jenis_bimbingan && $jadwal->jenis_bimbingan !== $request->jenis_bimbingan) {
+                Log::info('Jadwal tidak tersedia untuk jenis bimbingan yang dipilih');
                 return response()->json([
                     'available' => false,
                     'message' => 'Jadwal tidak tersedia untuk jenis bimbingan yang dipilih'
@@ -396,6 +431,7 @@ class PilihJadwalController extends Controller
 
             if (property_exists($jadwal, 'has_kuota_limit') && $jadwal->has_kuota_limit) {
                 if (property_exists($jadwal, 'sisa_kapasitas') && $jadwal->sisa_kapasitas <= 0) {
+                    Log::info('Kuota jadwal sudah penuh');
                     return response()->json([
                         'available' => false,
                         'message' => 'Kuota jadwal ini sudah penuh'
@@ -411,6 +447,7 @@ class PilihJadwalController extends Controller
                         ->exists();
 
                     if ($existingBooking) {
+                        Log::info('Jadwal sudah diambil mahasiswa lain');
                         return response()->json([
                             'available' => false,
                             'message' => 'Jadwal sudah diambil mahasiswa lain'
@@ -423,7 +460,7 @@ class PilihJadwalController extends Controller
             $existingBimbingan = DB::table('usulan_bimbingans')
                 ->where('nim', auth()->user()->nim)
                 ->where('event_id', $jadwal->event_id)
-                ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI']) // Tambahkan DISETUJUI
+                ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
                 ->get();
 
             Log::info('Existing bimbingan yang ditemukan:', [
@@ -431,66 +468,87 @@ class PilihJadwalController extends Controller
                 'data' => $existingBimbingan->toArray()
             ]);
 
-            Log::info('Memeriksa usulan bimbingan yang sudah ada:', [
-                'nim' => auth()->user()->nim,
-                'event_id' => $jadwal->event_id,
-                'found' => $existingBimbingan->count(),
-                'data' => $existingBimbingan
-            ]);
-
             if ($existingBimbingan->count() > 0) {
+                Log::info('Mahasiswa sudah pernah mengajukan bimbingan untuk jadwal ini');
                 return response()->json([
                     'available' => false,
                     'message' => 'Anda sudah pernah mengajukan bimbingan untuk jadwal ini'
                 ]);
             }
 
-            // Cek pending bimbingan
-            $pendingBimbingan = DB::table('usulan_bimbingans')
-                ->where('nim', auth()->user()->nim)
-                ->where('jenis_bimbingan', $request->jenis_bimbingan)
-                ->where('event_id', '!=', $jadwal->event_id) // Tambahkan ini untuk mengecualikan jadwal yang sedang dipilih
-                ->where('status', 'USULAN')
-                ->exists();
-
-            Log::info('Cek pengajuan yang masih dalam proses (selain jadwal ini):', [
-                'nim' => auth()->user()->nim,
-                'jenis_bimbingan' => $request->jenis_bimbingan,
-                'event_id_current' => $jadwal->event_id,
-                'has_pending' => $pendingBimbingan
-            ]);
-
-            if ($pendingBimbingan) {
-                return response()->json([
-                    'available' => false,
-                    'message' => 'Anda masih memiliki pengajuan bimbingan yang dalam proses'
-                ]);
-            }
-
-            // Cek jadwal bentrok
-            $bentrok = DB::table('usulan_bimbingans')
+            // Debug untuk melihat bimbingan yang mungkin bentrok
+            DB::enableQueryLog();
+            $bentrokQuery = DB::table('usulan_bimbingans')
                 ->where('nim', auth()->user()->nim)
                 ->where('tanggal', Carbon::parse($jadwal->waktu_mulai)->toDateString())
-                ->where(function ($query) use ($jadwal) {
-                    $query->whereBetween('waktu_mulai', [
-                        Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
-                        Carbon::parse($jadwal->waktu_selesai)->format('H:i')
-                    ])
-                        ->orWhereBetween('waktu_selesai', [
-                            Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
-                            Carbon::parse($jadwal->waktu_selesai)->format('H:i')
-                        ]);
-                })
                 ->where('status', '!=', 'DITOLAK')
-                ->exists();
+                ->where('status', '!=', 'DIBATALKAN');
 
-            if ($bentrok) {
+            $bentrokData = $bentrokQuery->get();
+
+            Log::info('SQL Query untuk cek bentrok:', DB::getQueryLog());
+            Log::info('Data bentrok yang ditemukan:', [
+                'count' => $bentrokData->count(),
+                'data' => $bentrokData->toArray(),
+                'tanggal_cek' => Carbon::parse($jadwal->waktu_mulai)->toDateString(),
+                'waktu_mulai_cek' => Carbon::parse($jadwal->waktu_mulai)->format('H:i'),
+                'waktu_selesai_cek' => Carbon::parse($jadwal->waktu_selesai)->format('H:i')
+            ]);
+
+            // Cek bentrok dengan satu per satu jadwal untuk memastikan
+            $adaBentrok = false;
+            $alasanBentrok = '';
+
+            foreach ($bentrokData as $existing) {
+                $existingMulai = $existing->waktu_mulai;
+                $existingSelesai = $existing->waktu_selesai;
+                $jadwalMulai = Carbon::parse($jadwal->waktu_mulai)->format('H:i');
+                $jadwalSelesai = Carbon::parse($jadwal->waktu_selesai)->format('H:i');
+
+                // Cek apakah jadwal baru bentrok dengan jadwal yang sudah ada
+                $isBentrok = false;
+
+                // Jadwal baru mulai di tengah jadwal lama
+                if ($jadwalMulai >= $existingMulai && $jadwalMulai < $existingSelesai) {
+                    $isBentrok = true;
+                    $alasanBentrok = "Jadwal baru mulai saat jadwal lama belum selesai";
+                }
+                // Jadwal baru selesai di tengah jadwal lama
+                elseif ($jadwalSelesai > $existingMulai && $jadwalSelesai <= $existingSelesai) {
+                    $isBentrok = true;
+                    $alasanBentrok = "Jadwal baru selesai saat jadwal lama masih berlangsung";
+                }
+                // Jadwal baru mencakup jadwal lama
+                elseif ($jadwalMulai <= $existingMulai && $jadwalSelesai >= $existingSelesai) {
+                    $isBentrok = true;
+                    $alasanBentrok = "Jadwal baru mencakup seluruh jadwal lama";
+                }
+
+                Log::info('Analisis bentrok jadwal:', [
+                    'existing_id' => $existing->id,
+                    'existing_mulai' => $existingMulai,
+                    'existing_selesai' => $existingSelesai,
+                    'jadwal_baru_mulai' => $jadwalMulai,
+                    'jadwal_baru_selesai' => $jadwalSelesai,
+                    'is_bentrok' => $isBentrok,
+                    'alasan' => $alasanBentrok
+                ]);
+
+                if ($isBentrok) {
+                    $adaBentrok = true;
+                    break;
+                }
+            }
+
+            if ($adaBentrok) {
+                Log::info('Mahasiswa sudah memiliki jadwal bimbingan di waktu yang sama. Alasan: ' . $alasanBentrok);
                 return response()->json([
                     'available' => false,
                     'message' => 'Anda sudah memiliki jadwal bimbingan di waktu yang sama'
                 ]);
             }
 
+            Log::info('Pengecekan berhasil, jadwal tersedia untuk: ' . auth()->user()->nim);
             return response()->json([
                 'available' => true
             ]);
@@ -544,14 +602,11 @@ class PilihJadwalController extends Controller
                 'exists' => $hasUnspecifiedJadwal
             ]);
 
-
             // 3. Tentukan jenis bimbingan yang akan ditampilkan
             $jenisBimbingan = [];
 
-            // Perubahan: Tampilkan semua jenis bimbingan yang ada di sistem
-            $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi', 'mbkm'];
-
-            // Ada 2 opsi di sini - pilih salah satu sesuai kebutuhan:
+            // Urutan jenis bimbingan yang diinginkan
+            $orderedJenisBimbingan = ['akademik', 'kp', 'mbkm', 'skripsi', 'konsultasi', 'lainnya'];
 
             // OPSI 1: Hanya tampilkan jenis bimbingan yang tersedia dalam jadwal dosen
             if (!empty($jadwalDenganJenis)) {
@@ -562,20 +617,26 @@ class PilihJadwalController extends Controller
 
             if ($hasUnspecifiedJadwal) {
                 // Jika ada jadwal tanpa jenis spesifik, tambahkan semua jenis bimbingan
-                $allJenisBimbingan = ['skripsi', 'kp', 'akademik', 'konsultasi', 'mbkm'];
-                $jenisBimbingan = array_merge($jenisBimbingan, $allJenisBimbingan);
+                $jenisBimbingan = array_merge($jenisBimbingan, $orderedJenisBimbingan);
                 Log::info('Menambahkan semua jenis bimbingan karena ada jadwal non-spesifik');
             }
 
-            // Hapus duplikat dan urutkan
+            // Hapus duplikat
             $jenisBimbingan = array_unique($jenisBimbingan);
-            sort($jenisBimbingan);
 
-            Log::info('Jenis bimbingan yang akan ditampilkan:', $jenisBimbingan);
+            // Urutkan berdasarkan array urutan yang diinginkan
+            $sortedJenisBimbingan = [];
+            foreach ($orderedJenisBimbingan as $jenis) {
+                if (in_array($jenis, $jenisBimbingan)) {
+                    $sortedJenisBimbingan[] = $jenis;
+                }
+            }
+
+            Log::info('Jenis bimbingan yang akan ditampilkan (setelah diurutkan):', $sortedJenisBimbingan);
 
             return response()->json([
                 'success' => true,
-                'jenisBimbingan' => $jenisBimbingan,
+                'jenisBimbingan' => $sortedJenisBimbingan,
                 'hasUnspecified' => $hasUnspecifiedJadwal,
                 'jadwalDenganJenis' => $jadwalDenganJenis // Tambahkan ini untuk debugging
             ]);
@@ -584,6 +645,46 @@ class PilihJadwalController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function cancelBooking($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Cari usulan bimbingan
+            $usulan = UsulanBimbingan::where('id', $id)
+                ->where('nim', Auth::guard('mahasiswa')->user()->nim)
+                ->whereIn('status', ['USULAN', 'DISETUJUI', 'DITERIMA'])
+                ->firstOrFail();
+
+            // Update status usulan
+            $usulan->status = 'DIBATALKAN';
+            $usulan->keterangan = 'Dibatalkan oleh mahasiswa';
+            $usulan->save();
+
+            // Kurangi jumlah pendaftar dan update status jadwal
+            $jadwal = JadwalBimbingan::where('event_id', $usulan->event_id)->first();
+            if ($jadwal) {
+                // Ini akan mengurangi jumlah_pendaftar dan mengupdate status
+                $jadwal->incrementKapasitas();
+                $jadwal->updateStatus();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Bimbingan berhasil dibatalkan'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error canceling booking: ' . $e->getMessage());
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Terjadi kesalahan saat membatalkan pendaftaran'
             ], 500);
         }
     }

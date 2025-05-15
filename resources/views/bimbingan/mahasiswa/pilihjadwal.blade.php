@@ -5,6 +5,7 @@
 @push('styles')
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
+        /* Style untuk form dan select */
         form .form-label {
             font-weight: bold;
         }
@@ -44,6 +45,159 @@
         .info-box .btn-connect:hover {
             background-color: #1557b0;
         }
+
+        /* Styling untuk pilihan jadwal */
+        .jadwal-tersedia {
+            color: #16a34a;
+        }
+        
+        .jadwal-penuh {
+            color: #dc2626;
+        }
+        
+        .jadwal-selesai {
+            color: #6b7280;
+        }
+        
+        select.form-select option:disabled {
+            color: #dc2626 !important;
+            font-style: italic;
+        }
+
+        /* ===== POPUP KONFIRMASI MODERN YANG RAPI ===== */
+        /* Container utama */
+        .clean-modal {
+            border-radius: 16px !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+            padding: 0 !important;
+            max-width: 400px !important;
+            width: 90% !important;
+        }
+
+        /* Header biru */
+        .clean-header {
+            background-color: #0066cc;
+            color: white;
+            padding: 16px 20px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            border-radius: 16px 16px 0 0;
+        }
+
+        /* Container untuk informasi */
+        .clean-info {
+            padding: 20px;
+            background-color: #f5f8fc;
+            padding-bottom: 5px !important;
+        }
+
+        /* Style untuk setiap item informasi - rata kiri */
+        .clean-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px !important;
+            padding-bottom: 8px !important;;
+        }
+        
+
+        /* Area untuk ikon */
+        .clean-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #e6f0ff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+
+        .clean-icon i {
+            color: #0066cc;
+            font-size: 16px;
+        }
+
+        /* Container teks - rata kiri */
+        .clean-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        /* Label - rata kiri */
+        .clean-label {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 3px;
+            text-align: left;
+        }
+
+        /* Value - rata kiri */
+        .clean-value {
+            color: #111827;
+            font-weight: 500;
+            font-size: 15px;
+            text-align: left;
+        }
+
+        /* Area pesan */
+        .clean-message {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .clean-question {
+            color: #4b5563;
+            font-size: 15px;
+            margin: 0;
+        }
+
+        /* Area tombol */
+        .clean-actions {
+            display: flex;
+            padding: 20px;
+            gap: 12px;
+        }
+
+        /* Tombol batal */
+        .clean-btn-cancel {
+            flex: 1;
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clean-btn-cancel:hover {
+            background-color: #e5e7eb;
+        }
+
+        /* Tombol konfirmasi */
+        .clean-btn-confirm {
+            flex: 1;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .clean-btn-confirm:hover {
+            background-color: #0055b3;
+        }
+        
     </style>
 @endpush
 
@@ -90,6 +244,7 @@
                         <option value="akademik">Bimbingan Akademik</option>
                         <option value="konsultasi">Konsultasi Pribadi</option>
                         <option value="mbkm">Bimbingan MBKM</option>
+                        <option value="lainnya">Lainnya</option>
                     </select>
                 </div>
 
@@ -125,6 +280,7 @@
         const dosenSelect = document.getElementById('pilihDosen');
         const jadwalSelect = document.getElementById('pilihJadwal');
         const jenisBimbinganSelect = document.getElementById('jenisBimbingan');
+        
         
         // Ambil data jenis bimbingan per dosen dari elemen tersembunyi jika ada
         let jenisBimbinganPerDosen = {};
@@ -169,11 +325,12 @@
     
         // Mapping nama jenis bimbingan
         const jenisOptions = {
-            'skripsi': 'Bimbingan Skripsi',
-            'kp': 'Bimbingan KP',
             'akademik': 'Bimbingan Akademik',
+            'kp': 'Bimbingan KP',
+            'mbkm': 'Bimbingan MBKM',
+            'skripsi': 'Bimbingan Skripsi',
             'konsultasi': 'Konsultasi Pribadi',
-            'mbkm': 'Bimbingan MBKM'
+            'lainnya': 'Lainnya'
         };
     
         // Handler untuk perubahan dosen
@@ -302,7 +459,16 @@
                         
                         // Gunakan teks yang sudah diformat dari backend
                         if (jadwal.text) {
+                            const isPenuh = jadwal.has_kuota_limit && jadwal.jumlah_pendaftar >= jadwal.kapasitas;
+                        // PERUBAHAN #2: Tambahkan indikator status
+                        if (isPenuh) {
+                            option.textContent = jadwal.text + ' [PENUH]';
+                            option.disabled = true;
+                            option.style.color = '#dc2626'; // Merah
+                            option.style.fontStyle = 'italic';
+                        } else {
                             option.textContent = jadwal.text;
+                        }
                         } else {
                             // Ekstrak tanggal dari waktu_mulai (format: YYYY-MM-DD HH:MM:SS)
                             const tanggalStr = jadwal.waktu_mulai ? jadwal.waktu_mulai.split(' ')[0] : (jadwal.tanggal || null);
@@ -325,14 +491,30 @@
                             
                             // Tambahkan informasi kuota jika tersedia
                             if (jadwal.kapasitas > 0) {
-                                additionalInfo += ` | Slot: ${jadwal.sisa_kapasitas}/${jadwal.kapasitas}`;
-                            }
-                            
-                            option.textContent = `${tanggalIndonesia} | ${waktuMulai}-${waktuSelesai}${additionalInfo}`;
-                        }
-    
-                        jadwalSelect.appendChild(option);
-                    });
+            // PERUBAHAN #4: Gunakan jumlah_pendaftar alih-alih pengajuanCount
+            const pengajuanCount = jadwal.jumlah_pendaftar || 0;
+            
+            // PERUBAHAN #5: Tampilkan status berdasarkan kuota
+            if (pengajuanCount >= jadwal.kapasitas) {
+                additionalInfo += ` | Kuota: PENUH`;
+                option.disabled = true;
+                option.style.color = '#dc2626'; // Merah
+            } else if (pengajuanCount > (jadwal.kapasitas * 0.7)) {
+                // Hampir penuh (>70%)
+                additionalInfo += ` | Kuota: ${pengajuanCount}/${jadwal.kapasitas} (Hampir Penuh)`;
+                option.style.color = '#d97706'; // Kuning/Orange
+            } else {
+                additionalInfo += ` | Kuota: ${pengajuanCount}/${jadwal.kapasitas}`;
+            }
+        } else {
+            additionalInfo += " | Kuota Tidak Terbatas";
+        }
+        
+        option.textContent = `${tanggalIndonesia} | ${waktuMulai}-${waktuSelesai}${additionalInfo}`;
+    }
+
+    jadwalSelect.appendChild(option);
+});
                     
                     // Jika hanya ada satu jadwal, otomatis pilih
                     if (result.data.length === 1) {
@@ -394,6 +576,7 @@
                         }
     
                         const checkResult = await checkResponse.json();
+                        console.log('Respons cek ketersediaan:', checkResult);
     
                         if (!checkResult.available) {
                             Swal.close();
@@ -404,15 +587,122 @@
     
                         // Konfirmasi pengajuan
                         const confirmResult = await Swal.fire({
-                            icon: 'question',
-                            title: 'Konfirmasi Pengajuan',
-                            text: 'Anda yakin ingin mengajukan bimbingan untuk jadwal ini?',
-                            showCancelButton: true,
-                            confirmButtonColor: '#3085d6',
-                            cancelButtonColor: '#d33',
-                            confirmButtonText: 'Ya, ajukan!',
-                            cancelButtonText: 'Batal'
-                        });
+    html: `
+        <div class="clean-header">
+            Konfirmasi Pengajuan
+        </div>
+        
+        <div class="clean-info">
+            <div class="clean-item">
+                <div class="clean-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="clean-text">
+                    <div class="clean-label">Dosen</div>
+                    <div class="clean-value">${dosenSelect.options[dosenSelect.selectedIndex].text}</div>
+                </div>
+            </div>
+            
+            <div class="clean-item">
+                <div class="clean-icon">
+                    <i class="fas fa-book"></i>
+                </div>
+                <div class="clean-text">
+                    <div class="clean-label">Jenis Bimbingan</div>
+                    <div class="clean-value">${jenisBimbinganSelect.options[jenisBimbinganSelect.selectedIndex].text}</div>
+                </div>
+            </div>
+            
+            <div class="clean-item">
+                <div class="clean-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="clean-text">
+                    <div class="clean-label">Jadwal</div>
+                    <div class="clean-value">${jadwalSelect.options[jadwalSelect.selectedIndex].text.split(' |')[0]}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="clean-message">
+            <p class="clean-question">
+                Apakah Anda yakin ingin mengajukan bimbingan untuk jadwal ini?
+            </p>
+        </div>
+        
+        <div class="clean-actions">
+            <button id="btnBatal" class="clean-btn-cancel">Batal</button>
+            <button id="btnKonfirmasi" class="clean-btn-confirm">Ya, ajukan!</button>
+        </div>
+    `,
+    showConfirmButton: false,
+    showCancelButton: false,
+    customClass: {
+        popup: 'clean-modal'
+    },
+    width: 'auto',
+    didOpen: () => {
+        // Event listener untuk tombol batal
+        document.getElementById('btnBatal').addEventListener('click', () => {
+            Swal.close();
+        });
+        
+        // Event listener untuk tombol konfirmasi
+        document.getElementById('btnKonfirmasi').addEventListener('click', async () => {
+            // Tampilkan loading saat mengirim data
+            Swal.fire({
+                title: 'Memproses',
+                text: 'Mohon tunggu...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Kirim data usulan bimbingan
+            try {
+                const formData = new FormData(formBimbingan);
+                const response = await fetch(formBimbingan.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(Object.fromEntries(formData))
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: 'Pengajuan bimbingan berhasil dikirim',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = '/usulanbimbingan';
+                    });
+                } else {
+                    throw new Error(result.message || 'Server error');
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak dapat memproses permintaan',
+                    text: 'Silakan coba beberapa saat lagi',
+                    confirmButtonColor: '#0066cc'
+                });
+            }
+        });
+    }
+});
     
                         if (!confirmResult.isConfirmed) {
                             return;

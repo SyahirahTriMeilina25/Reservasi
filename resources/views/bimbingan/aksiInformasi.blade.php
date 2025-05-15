@@ -54,7 +54,7 @@
                 <div class="col-lg-6 col-md-12 bg-white rounded-end px-4 py-3 mb-2 shadow-sm">
                     <h5 class="text-bold">Dosen Pembimbing</h5>
                     <hr>
-                    <p class="card-title text-secondary text-sm">Nama Pembimbing</p>
+                    <p class="card-title text-secondary text-sm">Nama</p>
                     <p class="card-text text-start">{{ $usulan->dosen_nama }}</p>
                 </div>
             </div>

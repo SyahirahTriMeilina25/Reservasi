@@ -22,7 +22,8 @@ return new class extends Migration
                 'kp',
                 'akademik',
                 'konsultasi',
-                'mbkm'
+                'mbkm',
+                'lainnya'
             ]);
             
             // Waktu bimbingan

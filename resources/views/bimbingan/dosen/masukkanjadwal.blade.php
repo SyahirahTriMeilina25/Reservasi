@@ -8,39 +8,114 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         /* ================ EXTERNAL EVENT ================ */
-        .external-event {
-            color: #757575 !important;
-            background-color: #E8AA42 !important;
-            border-color: #757575 !important;
-            font-style: italic;
+        .fc-event.external-event {
+            background-color: #f6c5f6 !important;
+            color: #431b3f !important; 
             border: none !important;
-            padding: 4px 8px !important;
-            margin: 2px !important;
-            border-radius: 8px !important;
-            font-size: 13px !important;
-            line-height: 1.4 !important;
-            font-weight: 500 !important;
-            box-shadow: var(--shadow-md) !important;
-            transition: all 0.2s ease-in-out !important;
             font-style: italic;
-
+            font-weight: 600;
         }
 
-        a.external-event {
-            color: var(--neutral-50) !important;
-        }
-
-        a.external-event:hover {
-            color: #000000 !important;
-        }
 
         .fc-event {
-            border: none !important;
-            padding: 2px 4px !important;
-            margin: 2px !important;
-            border-radius: 4px !important;
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 4px !important;
+        box-shadow: none !important;
+        display: flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: #1a1a1a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        }
+
+        .fc-event-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #1a73e8;
+        border-radius: 50%;
+        margin-right: 6px;
+        flex-shrink: 0;
+        }
+
+        .fc-event-time,
+        .fc-event-title {
+        display: inline;
+        vertical-align: middle;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+        color: #1a1a1a;
+        }
+
+        .fc-event-time {
+        margin-right: 4px;
+        color: #1a73e8;
+        font-weight: 500;
+        }
+
+        .fc-daygrid-event {
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        margin-bottom: 4px !important;
+        box-shadow: none !important;
+        display: flex;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 500;
+        color: #1a1a1a;
+        }
+
+        /* Tampilan untuk event di day view */
+        .fc-timeGridDay-view .fc-event,
+        .fc-timeGridWeek-view .fc-event {
+            background-color: #1a73e8 !important;
+            color: white !important;
+            border-left: none !important;
+        }
+
+        .fc-timeGridDay-view .fc-event-title,
+        .fc-timeGridWeek-view .fc-event-title {
+            color: white !important;
+        }
+
+        .fc-timeGridDay-view .fc-event-time,
+        .fc-timeGridWeek-view .fc-event-time {
+            color: white !important;
+        }
+
+        .fc-popover {
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        background-color: #f0f4fb;
+        padding: 10px;
+        z-index: 1050 !important;
+        }
+
+        .fc-popover .fc-event {
+        background: none !important;
+        border: none !important;
+        color: #1a1a1a !important;
+        }
+
+        @media (max-width: 768px) {
+        .fc-event, .fc-event * {
+            font-size: 0.5rem !important;
+        }
+        }
+
+
+        .fc-scroller {
             overflow: hidden !important;
         }
+
 
         /* Base Styles */
         :root {
@@ -90,6 +165,7 @@
             min-height: 800px; /* Tambah ini */
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         /* ================ TOOLBAR & NAVIGATION ================ */
@@ -193,8 +269,12 @@
 
 
         /* Date Cell Styling ukuran grid kalender*/
+        .fc .fc-daygrid-body {
+            width: 100% !important;
+            height: auto !important;
+        }
         .fc .fc-daygrid-day-frame {
-            min-height: 120px !important;
+            min-height: 150px !important;
             padding: 8px !important;
         }
 
@@ -258,7 +338,7 @@
             padding: 4px 8px !important;
             margin: 2px !important;
             border-radius: 8px !important;
-            font-size: 13px !important;
+            font-size: 12px !important;
             line-height: 1.4 !important;
             font-weight: 500 !important;
             box-shadow: var(--shadow-md) !important;
@@ -309,6 +389,16 @@
             background: var(--event-green) !important;
             color: #166534 !important;
             border-left: 3px solid #16a34a !important;
+        }
+        .fc-event-konsultasi {
+            background: var(--event-yellow) !important;
+            color: #92400e !important;
+            border-left: 3px solid #f4b400 !important;
+        }
+        .fc-event-lainnya {
+            background: #f3f4f6 !important;
+            color: #374151 !important;
+            border-left: 3px solid #9ca3af !important;
         }
 
         /* ================ MODAL STYLING ================ */
@@ -841,6 +931,77 @@
         #kuotaContainer, #jenisBimbinganContainer {
             transition: all 0.3s ease;
         }
+
+        /* Compact SweetAlert Popup Styles */
+.compact-swal-popup {
+    border-radius: 12px !important;
+    padding: 0 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.compact-swal-title {
+    padding: 16px 16px 0 16px !important;
+    margin-bottom: 0 !important;
+}
+
+.compact-swal-button {
+    border-radius: 6px !important;
+    padding: 8px 16px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    transition: all 0.2s ease !important;
+}
+
+.compact-swal-button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.swal2-html-container {
+    padding: 16px !important;
+    margin: 0 !important;
+}
+
+/* Fix untuk jarak button */
+.compact-swal-actions,
+.swal2-actions {
+    padding: 12px 24px 16px 24px !important; /* Kurangi padding untuk jarak yang lebih dekat */
+    margin: 0 !important;
+}
+
+/* Animation for popup appearance */
+.swal2-show {
+    animation: swal2-show 0.2s ease-out !important;
+}
+
+@keyframes swal2-show {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Hover effect for info rows */
+.info-row {
+    transition: all 0.2s ease;
+}
+
+.info-row:hover {
+    transform: translateX(2px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .compact-swal-popup {
+        width: 95% !important;
+        margin: 0 auto !important;
+    }
+}
     </style>
 @endpush
 
@@ -946,7 +1107,7 @@
                         </div>
                     </div>
                     
-                    <div class="mb-3">
+                    <div class="mb-2">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" id="enableJenisBimbingan" name="enableJenisBimbingan">
                             <label class="form-check-label" for="enableJenisBimbingan" id="jenisBimbinganLabel">Tentukan Jenis Bimbingan</label>
@@ -959,19 +1120,15 @@
                                 <option value="akademik">Bimbingan Akademik</option>
                                 <option value="konsultasi">Konsultasi Pribadi</option>
                                 <option value="mbkm">Bimbingan MBKM</option>
+                                <option value="lainnya">Lainnya</option>
                             </select>
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Catatan (Opsional)</label>
-                        <textarea class="form-control" id="eventDescription" rows="3" placeholder="Tambahkan informasi tambahan jika diperlukan"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="button" class="btn btn-primary" id="saveEvent">Simpan Jadwal</button>
+                <button type="button" class="btn btn-gradient" id="saveEvent">Simpan Jadwal</button>
             </div>
         </div>
     </div>
@@ -1190,10 +1347,47 @@ const requestData = {
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
-            left: 'prev,next today',
+            left: 'prev,next today jumpToMonth',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
+        customButtons: {
+        jumpToMonth: {
+            text: 'Pilih Bulan',
+            click: function() {
+                // Gunakan SweetAlert untuk pilih bulan
+                Swal.fire({
+                    title: 'Pilih Bulan',
+                    html: `
+                        <input type="month" id="monthPicker" class="swal2-input" value="${moment().format('YYYY-MM')}">
+                    `,
+                    confirmButtonText: 'Lihat',
+                    showCancelButton: true,
+                    cancelButtonText: 'Batal',
+                    preConfirm: () => {
+                        const selectedMonth = document.getElementById('monthPicker').value;
+                        if (!selectedMonth) {
+                            Swal.showValidationMessage('Pilih bulan terlebih dahulu');
+                        }
+                        return selectedMonth;
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const [year, month] = result.value.split('-');
+                        calendar.gotoDate(new Date(year, month-1, 1));
+                    }
+                });
+            }
+        }
+    },
+    
+    // Tambahkan datesSet di sini, juga di dalam objek konfigurasi
+    datesSet: function(info) {
+        console.log('Calendar view changed:', info.view.title);
+        // Paksa refresh event ketika view berubah
+        calendar.refetchEvents();
+    },
+
         views: {
             dayGridMonth: {
                 titleFormat: { year: 'numeric', month: 'long' }
@@ -1210,11 +1404,12 @@ const requestData = {
         buttonIcons: true,
         navLinks: true,
         editable: true,
-        dayMaxEvents: true,
+        dayMaxEvents: 2,
         selectable: true,
         selectMirror: true,
         nowIndicator: true,
-        height: '800px',
+        height: 'auto',
+        contentHeight: 'auto',
         slotMinTime: '08:00:00',
         slotMaxTime: '18:00:00',
         allDaySlot: false,
@@ -1226,13 +1421,35 @@ const requestData = {
         },
 
         eventDidMount: function(info) {
-            const eventEl = info.el;
-            const event = info.event;
-            
-            if (event.classNames.includes('external-event')) {
-                eventEl.style.opacity = '0.7';
-            }
-        },
+    const eventEl = info.el;
+    const event = info.event;
+    
+    console.log('Event mounted:', event.title, 'Jenis:', event.extendedProps.jenis_bimbingan);
+    
+    // Untuk external event
+    if (event.extendedProps.source === 'google' || event.extendedProps.isExternal) {
+        eventEl.classList.add('external-event');
+        return;
+    }
+    
+    // Tambahkan kelas berdasarkan jenis bimbingan langsung ke elemen DOM
+    const jenisBimbingan = event.extendedProps.jenis_bimbingan;
+    if (jenisBimbingan) {
+        if (jenisBimbingan === 'skripsi') {
+            eventEl.classList.add('fc-event-skripsi');
+        } else if (jenisBimbingan === 'kp') {
+            eventEl.classList.add('fc-event-kp');
+        } else if (jenisBimbingan === 'mbkm') {
+            eventEl.classList.add('fc-event-mbkm');
+        } else if (jenisBimbingan === 'akademik') {
+            eventEl.classList.add('fc-event-krs'); // krs untuk akademik
+        } else if (jenisBimbingan === 'konsultasi') {
+            eventEl.classList.add('fc-event-konsultasi');
+        } else if (jenisBimbingan === 'lainnya') {
+            eventEl.classList.add('fc-event-lainnya');
+        }
+    }
+},
         
         dateClick: function(info) {
             const hari = info.date.getDay();
@@ -1252,91 +1469,202 @@ const requestData = {
         },
 
         eventClassNames: function(arg) {
-            return ['fc-event-' + arg.event.extendedProps.jenis];
-        },
+    // Debugging - lihat apa data event yang tersedia
+    console.log('Event data:', arg.event.title, arg.event.extendedProps);
+    
+    const jenisBimbingan = arg.event.extendedProps.jenis_bimbingan;
+    
+    // Event dari Google Calendar atau external event
+    if (arg.event.extendedProps.source === 'google' || arg.event.extendedProps.isExternal) {
+        return ['external-event'];
+    }
+    
+    // Jika memiliki jenis bimbingan, return kelas yang sesuai
+    if (jenisBimbingan) {
+        if (jenisBimbingan === 'skripsi') {
+            return ['fc-event-skripsi'];
+        } else if (jenisBimbingan === 'kp') {
+            return ['fc-event-kp'];  
+        } else if (jenisBimbingan === 'mbkm') {
+            return ['fc-event-mbkm'];
+        } else if (jenisBimbingan === 'akademik') {
+            return ['fc-event-krs']; // menggunakan krs untuk akademik
+        } else if (jenisBimbingan === 'konsultasi') {
+            return ['fc-event-konsultasi'];
+        } else if (jenisBimbingan === 'lainnya') {
+            return ['fc-event-lainnya'];
+        }
+    }
+    // Default jika tidak ada jenis bimbingan
+    return [];
+},
 
-        eventContent: function(arg) {
-            return {
-                html: `
-                    <div class="fc-content">
-                        <div class="fc-title">${arg.event.title}</div>
-                        ${arg.event.extendedProps.status ? 
-                            `<div class="fc-status small">${arg.event.extendedProps.status}</div>` : 
-                            ''}
-                    </div>
-                `
-            };
-        },
+eventContent: function(arg) {
+    // Format waktu dengan format jam:menit
+    const startTime = moment(arg.event.start).format('H:mm');
+    
+    // Ambil judul event asli atau gunakan default
+    const eventTitle = arg.event.title || "Jadwal Bim";
+    
+    // Tetap gunakan dot dengan warna yang sesuai
+    let dotColor = '#1a73e8'; // Default blue
+    const jenisBimbingan = arg.event.extendedProps.jenis_bimbingan;
+    
+    if (jenisBimbingan === 'skripsi') {
+        dotColor = '#16a34a';
+    } else if (jenisBimbingan === 'kp') {
+        dotColor = '#dc2626';
+    } else if (jenisBimbingan === 'mbkm') {
+        dotColor = '#d97706';
+    } else if (jenisBimbingan === 'akademik') {
+        dotColor = '#0284c7';
+    } else if (jenisBimbingan === 'konsultasi') {
+        dotColor = '#f4b400';
+    } else if (jenisBimbingan === 'lainnya') {
+        dotColor = '#9ca3af';
+    }
+    // Kembalikan konten HTML tanpa menimpa background-color event
+    return {
+        html: `
+            <div class="fc-event-content">
+                <div class="fc-event-dot" style="background-color: ${dotColor};"></div>
+                <div class="fc-event-time">${startTime}</div>
+                <div class="fc-event-title">${eventTitle}</div>
+            </div>
+        `
+    };
+},
 
-        eventClick: function(info) {
-            if (info.event.classNames.includes('external-event')) {
-                Swal.fire({
-                    title: info.event.title,
-                    html: `
-                        <div class="text-center">
-                            <p><strong>Waktu:</strong> ${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</p>
-                            ${info.event.extendedProps.description ? `<p><strong>Deskripsi:</strong> ${info.event.extendedProps.description}</p>` : ''}
-                        </div>
-                    `,
-                    icon: 'info',
-                    confirmButtonColor: '#1a73e8'
-                });
-                return;
-            }
+eventClick: function(info) {
+    // Jika event dari Google Calendar, tampilkan detail sederhana
+    if (info.event.extendedProps.source === 'google' || info.event.extendedProps.isExternal) {
+        Swal.fire({
+            title: info.event.title,
+            html: `
+                <div class="text-center">
+                    <p><strong>Waktu:</strong> ${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</p>
+                    ${info.event.extendedProps.description ? `<p><strong>Deskripsi:</strong> ${info.event.extendedProps.description}</p>` : ''}
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonColor: '#1a73e8'
+        });
+        return;
+    }
 
-            // Parse description untuk memisahkan informasi
-            const description = info.event.extendedProps.description || '';
-            const descriptionLines = description.split('\n').filter(line => line.trim());
+    // Parse description untuk memisahkan informasi
+    const description = info.event.extendedProps.description || '';
+    const descriptionLines = description.split('\n').filter(line => line.trim());
+    
+    // Mendapatkan informasi jenis bimbingan dan kuota
+    const jenisBimbingan = info.event.extendedProps.jenis_bimbingan;
+    const hasKuotaLimit = info.event.extendedProps.has_kuota_limit;
+    const kuota = info.event.extendedProps.kuota;
+
+    // Membuat tampilan yang lebih terstruktur
+    const details = descriptionLines.reduce((acc, line) => {
+        if (line.startsWith('Status:')) {
+            acc.status = line.replace('Status:', '').trim();
+        } else if (line.startsWith('Catatan:')) {
+            acc.catatan = line.replace('Catatan:', '').trim();
+        } else if (line.startsWith('Kapasitas:')) {
+            acc.kapasitas = line.replace('Kapasitas:', '').trim();
+        }
+        return acc;
+    }, {});
+
+    // Mapping jenis bimbingan ke label yang lebih readable
+    const jenisBimbinganLabels = {
+        'skripsi': 'Bimbingan Skripsi',
+        'kp': 'Bimbingan KP',
+        'akademik': 'Bimbingan Akademik',
+        'konsultasi': 'Konsultasi Pribadi',
+        'mbkm': 'Bimbingan MBKM',
+        'lainnya': 'Lainnya'
+    };
+
+    const jenisBimbinganLabel = jenisBimbingan ? (jenisBimbinganLabels[jenisBimbingan] || jenisBimbingan) : 'Tidak ditentukan';
+
+    // Untuk jadwal bimbingan internal, dapatkan status terbaru
+    $.ajax({
+        url: `/jadwal/${info.event.extendedProps.id || info.event.id}/status`,
+        method: 'GET',
+        success: function(statusData) {
+            // Tentukan warna status berdasarkan data terbaru
+            const statusColor = statusData.status === 'penuh' ? '#dc2626' : 
+                            statusData.status === 'selesai' ? '#6b7280' : '#16a34a';
             
-            // Membuat tampilan yang lebih terstruktur
-            const details = descriptionLines.reduce((acc, line) => {
-                if (line.startsWith('Status:')) {
-                    acc.status = line.replace('Status:', '').trim();
-                } else if (line.startsWith('Catatan:')) {
-                    acc.catatan = line.replace('Catatan:', '').trim();
-                } else if (line.startsWith('Kapasitas:')) {
-                    acc.kapasitas = line.replace('Kapasitas:', '').trim();
-                }
-                return acc;
-            }, {});
+            // PENTING: Jika status penuh, tampilkan kapasitas sebagai jumlah pendaftar
+            const displayedPendaftar = statusData.status === 'penuh' ? statusData.kapasitas : statusData.jumlah_pendaftar;
+            
+            console.log('Status data:', statusData);
+            console.log('displayedPendaftar:', displayedPendaftar);              
 
             Swal.fire({
-                title: 'Detail Jadwal Bimbingan',
+                title: '<div style="font-size: 18px; font-weight: 600; color: #1a202c; margin-bottom: 8px;">Detail Jadwal Bimbingan</div>',
                 html: `
-                    <div class="detail-container">
-                        <div class="detail-item">
-                            <strong>Tanggal:</strong>
-                            <span>${moment(info.event.start).format('DD MMMM YYYY')}</span>
+                    <div class="compact-popup-container" style="text-align: left; padding: 0px;">
+                        <!-- Time Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: #eef2ff; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-clock" style="font-size: 16px; color: #3b82f6;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Waktu</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</div>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <strong>Waktu:</strong>
-                            <span>${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</span>
+
+                        <!-- Type Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: #fef3c7; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-bookmark-star" style="font-size: 16px; color: #d97706;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Jenis Bimbingan</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${jenisBimbinganLabel}</div>
+                            </div>
                         </div>
-                        ${details.kapasitas ? `
-                            <div class="detail-item">
-                                <strong>Kapasitas:</strong>
-                                <span>${details.kapasitas || ''}</span>
+
+                        <!-- Quota Section if exists -->
+                        ${hasKuotaLimit ? `
+                            <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                                <div style="background: #ecfdf5; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                    <i class="bi bi-people" style="font-size: 16px; color: #059669;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kuota</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${displayedPendaftar}/${statusData.kapasitas} Mahasiswa</div>
+                                </div>
                             </div>
                         ` : ''}
-                        ${details.catatan ? `
-                            <div class="detail-item">
-                                <strong>Catatan:</strong>
-                                <span>${details.catatan}</span>
+
+                        <!-- Status Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: ${statusData.status === 'tersedia' ? '#dcfce7' : statusData.status === 'penuh' ? '#fee2e2' : '#f3f4f6'}; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-info-circle" style="font-size: 16px; color: ${statusColor};"></i>
                             </div>
-                        ` : ''}
-                        <div class="detail-item">
-                            <strong>Status:</strong>
-                            <span>${details.status || 'Tersedia'}</span>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Status</div>
+                                <div style="font-size: 14px; font-weight: 600; color: ${statusColor};">${statusData.status_label}</div>
+                            </div>
                         </div>
                     </div>
                 `,
-                icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Hapus Jadwal',
-                cancelButtonText: 'Tutup',
+                confirmButtonText: '<i></i>Hapus Jadwal',
+                cancelButtonText: '<i></i>Tutup',
                 showCloseButton: true,
+                width: '420px',
+                customClass: {
+                    popup: 'compact-swal-popup',
+                    title: 'compact-swal-title',
+                    confirmButton: 'compact-swal-button',
+                    cancelButton: 'compact-swal-button',
+                    actions: 'compact-swal-actions'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     // Konfirmasi penghapusan
@@ -1357,37 +1685,130 @@ const requestData = {
                 }
             });
         },
-
-        events: function(fetchInfo, successCallback, failureCallback) {
-            console.log('Memulai loading events...');
+        error: function() {
+            // Fallback jika ada error: gunakan data dari event
+            const statusColor = info.event.extendedProps.status === 'penuh' ? '#dc2626' : 
+                                info.event.extendedProps.status === 'selesai' ? '#6b7280' : '#16a34a';
+                                
+            const statusLabel = info.event.extendedProps.status === 'penuh' ? 'Penuh' : 
+                               info.event.extendedProps.status === 'selesai' ? 'Selesai' : 'Tersedia';
             
-            // Gunakan URL lengkap dengan leading slash
-            fetch('/dosen/google/events')
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (!response.ok) {
-                        console.error('Error response:', response.statusText);
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.text(); // Gunakan text() dulu agar bisa diperiksa
-                })
-                .then(text => {
-                    console.log('Raw response:', text);
-                    try {
-                        const events = JSON.parse(text);
-                        console.log('Parsed events:', events);
-                        successCallback(events);
-                    } catch (e) {
-                        console.error('JSON parsing error:', e);
-                        failureCallback(e);
-                    }
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    failureCallback(error);
-                    tampilkanPesan('error', 'Gagal memuat jadwal: ' + error.message);
-                });
+            const displayedPendaftar = info.event.extendedProps.status === 'penuh' ? info.event.extendedProps.kuota : (info.event.extendedProps.jumlah_pendaftar || 0);
+
+            Swal.fire({
+                // Gunakan format yang sama dengan kode di atas, tetapi dengan data dari event,
+                // bukan dari response AJAX
+                title: '<div style="font-size: 18px; font-weight: 600; color: #1a202c; margin-bottom: 8px;">Detail Jadwal Bimbingan</div>',
+                html: `
+                    <div class="compact-popup-container" style="text-align: left; padding: 0px;">
+                        <!-- Time Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: #eef2ff; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-clock" style="font-size: 16px; color: #3b82f6;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Waktu</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${moment(info.event.start).format('HH:mm')} - ${moment(info.event.end).format('HH:mm')}</div>
+                            </div>
+                        </div>
+
+                        <!-- Type Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: #fef3c7; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-bookmark-star" style="font-size: 16px; color: #d97706;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Jenis Bimbingan</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${jenisBimbinganLabel}</div>
+                            </div>
+                        </div>
+
+                        <!-- Quota Section if exists -->
+                        ${hasKuotaLimit ? `
+                            <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                                <div style="background: #ecfdf5; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                    <i class="bi bi-people" style="font-size: 16px; color: #059669;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kuota</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${info.event.extendedProps.jumlah_pendaftar || 0}/${info.event.extendedProps.kuota || 0} Mahasiswa</div>
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        <!-- Status Section -->
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: ${info.event.extendedProps.status === 'tersedia' ? '#dcfce7' : info.event.extendedProps.status === 'penuh' ? '#fee2e2' : '#f3f4f6'}; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-info-circle" style="font-size: 16px; color: ${statusColor};"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Status</div>
+                                <div style="font-size: 14px; font-weight: 600; color: ${statusColor};">${statusLabel}</div>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i></i>Hapus Jadwal',
+                cancelButtonText: '<i></i>Tutup',
+                showCloseButton: true,
+                width: '420px',
+                customClass: {
+                    popup: 'compact-swal-popup',
+                    title: 'compact-swal-title',
+                    confirmButton: 'compact-swal-button',
+                    cancelButton: 'compact-swal-button',
+                    actions: 'compact-swal-actions'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Konfirmasi penghapusan (sama dengan di atas)
+                    Swal.fire({
+                        title: 'Hapus Jadwal?',
+                        text: "Jadwal yang dihapus tidak dapat dikembalikan",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ya, hapus!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            hapusJadwal(info.event.id);
+                        }
+                    });
+                }
+            });
         }
+    });
+},
+
+events: function(fetchInfo, successCallback, failureCallback) {
+    console.log('Memulai loading events untuk bulan:', fetchInfo.startStr, 'hingga', fetchInfo.endStr);
+    
+    fetch('/dosen/google/events?start=' + encodeURIComponent(fetchInfo.startStr) + 
+          '&end=' + encodeURIComponent(fetchInfo.endStr) + 
+          '&filter_duplicates=true')
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                console.error('Error response:', response.statusText);
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(events => {
+            console.log('Events yang diterima:', events);
+            successCallback(events);
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            failureCallback(error);
+            tampilkanPesan('error', 'Gagal memuat jadwal: ' + error.message);
+        });
+}
     });
 
     calendar.render();
@@ -1400,10 +1821,8 @@ const requestData = {
     }, 2000);
 
     // Handler Simpan Jadwal
-    // Handler Simpan Jadwal
     document.getElementById('saveEvent')?.addEventListener('click', async function() {
     try {
-        const description = document.getElementById('eventDescription').value;
         const startTime = document.getElementById('startTime').value;
         const endTime = document.getElementById('endTime').value;
 
@@ -1474,7 +1893,6 @@ const requestData = {
         console.log('Data yang akan dikirim:', {
             start: startDateTime.toISOString(),
             end: endDateTime.toISOString(),
-            description,
             has_kuota_limit: hasKuotaLimit,
             kuota: kuota,
             enableJenisBimbingan: enableJenisBimbingan,
@@ -1495,7 +1913,6 @@ const requestData = {
         const requestData = {
             start: startDateTime.toISOString(),
             end: endDateTime.toISOString(),
-            description: description,
             has_kuota_limit: hasKuotaLimit,
             kuota: kuota,
             jenis_bimbingan: jenisBimbingan,
@@ -1695,6 +2112,33 @@ const requestData = {
             }
         }
     }
+
+    // Tambahkan di akhir file masukkanjadwal.blade.php
+$(document).ajaxError(function(event, jqXHR, settings, thrownError) {
+    // Cek apakah ini error JSON parsing
+    if (thrownError === 'SyntaxError' || 
+        (jqXHR.responseText && jqXHR.responseText.indexOf('<!DOCTYPE') >= 0)) {
+        
+        console.error('JSON Parsing Error. Received HTML instead of JSON');
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Terjadi Kesalahan Sistem',
+            html: 'Sesi Anda mungkin telah berakhir.<br><br>' +
+                  '<button id="reconnectBtn" class="btn btn-gradient">Hubungkan Ulang</button> &nbsp; ' +
+                  '<button id="reloadBtn" class="btn btn-secondary">Muat Ulang</button>',
+            showConfirmButton: false
+        });
+        
+        $('#reconnectBtn').on('click', function() {
+            window.location.href = "{{ route('dosen.google.connect') }}";
+        });
+        
+        $('#reloadBtn').on('click', function() {
+            window.location.reload();
+        });
+    }
+});
 
     // Inisialisasi label saat page load
     initializeFormLabels();

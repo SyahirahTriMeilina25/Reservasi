@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}"> 
+    <!-- Anti-cache meta tags -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="turbolinks-cache-control" content="no-cache">
+    
     <title>SEPTI - @yield('title', 'Sistem Informasi Teknik Informatika')</title>
     
     <!-- Bootstrap CSS -->
@@ -109,6 +115,60 @@
     @stack('styles')
 </head>
 <body class="bg-light">
+    <!-- Anti-back button script -->
+    <script>
+    (function() {
+        // Deteksi navigasi dari cache browser (back/forward button)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // Halaman dimuat dari cache browser, paksa reload
+                window.location.reload(true);
+            }
+        });
+        
+        // Deteksi jenis navigasi
+        if (performance && performance.navigation) {
+            if (performance.navigation.type === 2) { // 2 = back/forward navigation
+                // Paksa reload untuk mendapatkan state terbaru
+                window.location.reload(true);
+            }
+        }
+        
+        // Deteksi histori navigasi modern
+        if (window.performance && window.performance.getEntriesByType) {
+            const navEntries = window.performance.getEntriesByType('navigation');
+            if (navEntries.length > 0 && navEntries[0].type === 'back_forward') {
+                window.location.reload(true);
+            }
+        }
+        
+        // Disable browser back functionality after logout
+        history.pushState(null, null, document.URL);
+        window.addEventListener('popstate', function() {
+            history.pushState(null, null, document.URL);
+            
+            // Periksa status autentikasi ketika user mencoba kembali
+            fetch('/auth-check', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+                },
+                cache: 'no-store'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    window.location.href = "{{ route('login') }}";
+                }
+            })
+            .catch(() => {
+                window.location.href = "{{ route('login') }}";
+            });
+        });
+    })();
+    </script>
+    
     @include('components.blobbackground')
     @include('components.navbar')
     @if(session('success'))
@@ -136,6 +196,38 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Script pengecekan autentikasi -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fungsi untuk memeriksa apakah user masih login
+        function checkAuthStatus() {
+            fetch('/auth-check', {
+                method: 'GET',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0'
+                },
+                cache: 'no-store'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    window.location.href = "{{ route('login') }}";
+                }
+            })
+            .catch(() => {
+                window.location.href = "{{ route('login') }}";
+            });
+        }
+        
+        // Periksa saat halaman dimuat
+        checkAuthStatus();
+        
+        // Periksa secara berkala
+        setInterval(checkAuthStatus, 30000); // Periksa setiap 30 detik
+    });
+    </script>
+    
     @stack('scripts')
 </body>
 </html>

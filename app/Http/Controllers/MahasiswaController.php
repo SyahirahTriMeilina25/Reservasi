@@ -23,6 +23,10 @@ class MahasiswaController extends Controller
             $daftarDosen = collect();
             $riwayat = collect();
 
+            // Buat token untuk verifikasi halaman
+            $token = csrf_token();
+            session(['page_token' => $token]);
+
             // Load data based on active tab
             switch ($activeTab) {
                 case 'usulan':
@@ -64,11 +68,13 @@ class MahasiswaController extends Controller
                     break;
             }
 
+            // Tambahkan token ke compact array
             return view('bimbingan.mahasiswa.usulanbimbingan', compact(
                 'activeTab',
                 'usulan',
                 'daftarDosen',
-                'riwayat'
+                'riwayat',
+                'token'
             ));
         } catch (\Exception $e) {
             Log::error('Error in index: ' . $e->getMessage());
