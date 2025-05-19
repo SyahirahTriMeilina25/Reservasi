@@ -349,9 +349,12 @@ class PilihJadwalController extends Controller
                 $displayText = "{$hari}, {$tanggalFormat} | {$waktuMulai}-{$waktuSelesai}";
 
                 if ($jadwal->kapasitas > 0 && $jadwal->has_kuota_limit) {
-                    // PERBAIKAN: Tambahkan informasi yang sudah selesai
+                    // PERBAIKAN: Selalu tampilkan informasi kuota terlepas dari status selesai
+                    $displayText .= " | Kuota: {$jadwal->jumlah_pendaftar}/{$jadwal->kapasitas}";
+                    
+                    // Tambahkan informasi tambahan jika ada yang sudah selesai
                     if ($selesaiCount > 0) {
-                        $displayText .= " | Kuota: {$pendaftarCount}/{$jadwal->kapasitas} terpakai";
+                        $displayText .= " ({$selesaiCount} selesai)";
                     }
                     
                     // PENTING: Jangan hilangkan kondisi untuk melewati jadwal penuh

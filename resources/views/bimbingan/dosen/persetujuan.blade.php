@@ -2644,16 +2644,13 @@ $('.google-connect-btn').click(function(e) {
     e.preventDefault();
     var url = $(this).attr('href');
     
-    // Pastikan kita memberi tahu halaman asal dengan parameter yang benar
-    url += (url.indexOf('?') !== -1 ? '&' : '?') + 'origin_url=' + encodeURIComponent(window.location.href);
+    // Tambahkan parameter untuk identifikasi halaman asal
+    url += (url.indexOf('?') !== -1 ? '&' : '?') + 'return_to=' + encodeURIComponent(window.location.href);
     
-    // Tambahkan parameter tab=jadwal agar sesuai dengan kondisi di controller
-    if (window.location.href.indexOf('tab=jadwal') === -1) {
-        url += '&tab=jadwal';
-    }
-    
-    // Alihkan ke halaman autentikasi Google secara langsung
+    // Alihkan ke halaman autentikasi Google secara langsung (tanpa popup)
     window.location.href = url;
+    
+    // Tidak perlu event listener dan kode popup lainnya
 });
     /**
  * Fungsi untuk menampilkan notifikasi undangan berhasil dikirim

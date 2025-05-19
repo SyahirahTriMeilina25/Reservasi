@@ -862,26 +862,36 @@ class DosenController extends Controller
 
             $jadwal = JadwalBimbingan::where('event_id', $usulan->event_id)->first();
             if ($jadwal) {
-                // PERBAIKAN: Gunakan raw query untuk update status dengan tanda kutip
+                // Ambil nilai ENUM yang valid dari database
+                $validStatusQuery = DB::select("SHOW COLUMNS FROM jadwal_bimbingans WHERE Field = 'status'");
+                $validStatusValues = [];
+
+                if (!empty($validStatusQuery) && isset($validStatusQuery[0]->Type)) {
+                    preg_match('/enum\((.*)\)/', $validStatusQuery[0]->Type, $matches);
+                    if (isset($matches[1])) {
+                        $validStatusValues = array_map(function ($val) {
+                            return trim($val, "'\"");
+                        }, explode(',', $matches[1]));
+                    }
+                }
+
+                // Tentukan status yang akan digunakan (selesai jika valid, atau tersedia sebagai fallback)
+                $newStatus = in_array('selesai', $validStatusValues) ? 'selesai' : 'tersedia';
+
+                // Update jadwal dengan status yang valid
                 DB::table('jadwal_bimbingans')
                     ->where('id', $jadwal->id)
                     ->update([
-                        'status' => DB::raw("'" . JadwalBimbingan::STATUS_SELESAI . "'"),
+                        'status' => $newStatus,
                         'updated_at' => now()
                     ]);
 
-                // Atau alternatif lain, update semua field yang diperlukan
-                /*
-            DB::table('jadwal_bimbingans')
-                ->where('id', $jadwal->id)
-                ->update([
-                    'status' => DB::raw("'selesai'"),
-                    'updated_at' => now()
+                Log::info('Jadwal diupdate dengan status: ' . $newStatus, [
+                    'jadwal_id' => $jadwal->id,
+                    'valid_statuses' => $validStatusValues
                 ]);
-            */
             }
 
-            // Commit transaksi setelah semua perubahan berhasil
             DB::commit();
 
             return response()->json([
@@ -889,9 +899,7 @@ class DosenController extends Controller
                 'message' => 'Bimbingan berhasil diselesaikan'
             ]);
         } catch (\Exception $e) {
-            // Rollback transaksi jika terjadi error
             DB::rollBack();
-
             Log::error('Error in selesaikan: ' . $e->getMessage(), [
                 'id' => $id,
                 'exception' => $e->getTraceAsString()
@@ -1037,6 +1045,7 @@ class DosenController extends Controller
     /**
      * Membatalkan persetujuan bimbingan
      */
+
     public function batalkanPersetujuan($id, Request $request)
     {
         try {
@@ -1091,9 +1100,13 @@ class DosenController extends Controller
             // Hitung jumlah total pembatalan (mulai dari 1 untuk bimbingan utama)
             $totalBatalkan = 1;
 
+            // Simpan daftar semua ID usulan bimbingan yang dibatalkan (termasuk ID utama)
+            $allCanceledIds = [$id];
+
             // Jika ada jadwal terkait yang dipilih, batalkan juga
             if ($request->filled('related_schedules') && count($request->related_schedules) > 0) {
                 $relatedIds = $request->related_schedules;
+                $allCanceledIds = array_merge($allCanceledIds, $relatedIds);
 
                 // Batch update untuk jadwal terkait
                 $updated = UsulanBimbingan::whereIn('id', $relatedIds)
@@ -1160,7 +1173,7 @@ class DosenController extends Controller
                     'status_baru' => $newStatus
                 ]);
 
-                // FOKUS NOTIFIKASI: Update Google Calendar
+                // === PERBAIKAN: PROSES UPDATE GOOGLE CALENDAR ===
                 try {
                     $dosen = Auth::user();
                     if ($dosen->hasGoogleCalendarConnected()) {
@@ -1172,23 +1185,36 @@ class DosenController extends Controller
                             try {
                                 $event = $service->events->get('primary', $jadwal->event_id);
 
+                                // Siapkan daftar semua mahasiswa yang dibatalkan untuk header deskripsi
+                                $canceledStudents = [];
+
+                                // Ambil semua data usulan yang dibatalkan
+                                $allCanceledUsulan = UsulanBimbingan::with('mahasiswa')
+                                    ->whereIn('id', $allCanceledIds)
+                                    ->get();
+
+                                foreach ($allCanceledUsulan as $usulan) {
+                                    $canceledStudents[] = [
+                                        'nama' => $usulan->mahasiswa->nama,
+                                        'nim' => $usulan->nim,
+                                        'email' => $usulan->mahasiswa->email
+                                    ];
+                                }
+
                                 // Ambil data attendees
                                 $attendees = $event->getAttendees() ?: [];
                                 $updatedAttendees = [];
-                                $mahasiswaEmail = $bimbingan->mahasiswa->email;
 
-                                // Variabel untuk mengecek apakah mahasiswa ada di attendees
-                                $mahasiswaExists = false;
+                                // Buat array email mahasiswa yang dibatalkan untuk filter attendees
+                                $canceledEmails = array_map(function ($student) {
+                                    return $student['email'];
+                                }, $canceledStudents);
 
+                                // Filter attendees untuk menghapus mahasiswa yang dibatalkan
                                 foreach ($attendees as $attendee) {
-                                    // Periksa apakah ini email mahasiswa yang dibatalkan
-                                    if ($attendee->getEmail() === $mahasiswaEmail) {
-                                        $mahasiswaExists = true;
-                                        continue; // Skip mahasiswa yang dibatalkan
+                                    if (!in_array($attendee->getEmail(), $canceledEmails)) {
+                                        $updatedAttendees[] = $attendee;
                                     }
-
-                                    // Simpan attendee lainnya
-                                    $updatedAttendees[] = $attendee;
                                 }
 
                                 // Update deskripsi event
@@ -1197,7 +1223,12 @@ class DosenController extends Controller
 
                                 // Informasi pembatalan
                                 $cancelInfo = "\n\n--- PEMBATALAN BIMBINGAN ---\n";
-                                $cancelInfo .= "Mahasiswa {$bimbingan->mahasiswa->nama} (NIM: {$bimbingan->nim}) dibatalkan bimbingannya.\n";
+                                $cancelInfo .= "Mahasiswa berikut dibatalkan bimbingannya:\n";
+
+                                foreach ($canceledStudents as $student) {
+                                    $cancelInfo .= "- {$student['nama']} (NIM: {$student['nim']})\n";
+                                }
+
                                 $cancelInfo .= "Alasan: {$request->alasan}\n";
                                 $cancelInfo .= "Waktu pembatalan: " . now()->format('d-m-Y H:i');
 
@@ -1213,174 +1244,199 @@ class DosenController extends Controller
                                     'sendUpdates' => 'all' // Kirim notifikasi ke semua attendees
                                 ]);
 
-                                Log::info('Berhasil update event dosen', [
+                                Log::info('Berhasil update event dosen dengan pembatalan massal', [
                                     'event_id' => $jadwal->event_id,
-                                    'mahasiswa_removed' => $mahasiswaExists
+                                    'mahasiswa_dibatalkan' => count($canceledStudents)
                                 ]);
 
-                                // LANGKAH 2: KIRIM NOTIFIKASI PEMBATALAN KHUSUS KE MAHASISWA
-                                // Buat event terpisah khusus untuk mahasiswa yang dibatalkan dengan status cancelled
-                                $cancelNotificationEvent = new \Google_Service_Calendar_Event();
-                                $cancelNotificationEvent->setSummary('[DIBATALKAN] Bimbingan dengan ' . $dosen->nama);
+                                // LANGKAH 2: KIRIM NOTIFIKASI PEMBATALAN KHUSUS KE SETIAP MAHASISWA
+                                foreach ($canceledStudents as $student) {
+                                    // Cari usulan mahasiswa
+                                    $mahasiswaUsulan = $allCanceledUsulan->where('nim', $student['nim'])->first();
 
-                                // Gunakan waktu yang sama dengan event asli
-                                $cancelNotificationEvent->setStart($event->getStart());
-                                $cancelNotificationEvent->setEnd($event->getEnd());
+                                    if (!$mahasiswaUsulan) continue;
 
-                                // Deskripsikan pembatalan
-                                $cancelDesc = "NOTIFIKASI PEMBATALAN BIMBINGAN\n\n";
-                                $cancelDesc .= "Bimbingan dengan dosen {$dosen->nama} telah DIBATALKAN.\n\n";
-                                $cancelDesc .= "Detail bimbingan:\n";
-                                $cancelDesc .= "- NIM: {$bimbingan->nim}\n";
-                                $cancelDesc .= "- Tanggal: " . Carbon::parse($bimbingan->tanggal)->format('d-m-Y') . "\n";
-                                $cancelDesc .= "- Waktu: {$bimbingan->waktu_mulai} - {$bimbingan->waktu_selesai}\n";
-                                $cancelDesc .= "- Jenis: " . ucfirst($bimbingan->jenis_bimbingan) . "\n\n";
-                                $cancelDesc .= "Alasan pembatalan: {$request->alasan}\n";
-                                $cancelDesc .= "Waktu pembatalan: " . now()->format('d-m-Y H:i');
+                                    // Cari objek mahasiswa
+                                    $mahasiswa = $mahasiswaUsulan->mahasiswa;
 
-                                $cancelNotificationEvent->setDescription($cancelDesc);
+                                    if (!$mahasiswa) continue;
 
-                                // Set sebagai cancelled
-                                $cancelNotificationEvent->setStatus('cancelled');
+                                    // Buat event terpisah khusus untuk notifikasi pembatalan
+                                    $cancelNotificationEvent = new \Google_Service_Calendar_Event();
+                                    $cancelNotificationEvent->setSummary('[DIBATALKAN] Bimbingan dengan ' . $dosen->nama);
 
-                                // Tambahkan mahasiswa sebagai satu-satunya attendee
-                                $mahasiswaAttendee = new \Google_Service_Calendar_EventAttendee();
-                                $mahasiswaAttendee->setEmail($mahasiswaEmail);
-                                $mahasiswaAttendee->setDisplayName($bimbingan->mahasiswa->nama);
-                                $cancelNotificationEvent->setAttendees([$mahasiswaAttendee]);
+                                    // Gunakan waktu yang sama dengan event asli
+                                    $cancelNotificationEvent->setStart($event->getStart());
+                                    $cancelNotificationEvent->setEnd($event->getEnd());
 
-                                // Buat event notifikasi
-                                try {
-                                    $notifEvent = $service->events->insert('primary', $cancelNotificationEvent, [
-                                        'sendUpdates' => 'all', // Penting: Ini akan mengirim notifikasi ke attendees
-                                        'supportsAttachments' => true
-                                    ]);
-
-                                    Log::info('Berhasil membuat notifikasi pembatalan untuk mahasiswa', [
-                                        'notif_event_id' => $notifEvent->getId()
-                                    ]);
-                                } catch (\Exception $e) {
-                                    Log::error('Gagal membuat notifikasi pembatalan: ' . $e->getMessage(), [
-                                        'exception' => $e->getTraceAsString()
-                                    ]);
-                                }
-                            } catch (\Exception $e) {
-                                Log::error('Gagal mendapatkan event dosen: ' . $e->getMessage(), [
-                                    'exception' => $e->getTraceAsString()
-                                ]);
-                            }
-                        }
-                    }
-
-                    // LANGKAH 3: UPDATE EVENT DI KALENDER MAHASISWA - PERBAIKAN UTAMA
-                    $mahasiswa = $bimbingan->mahasiswa;
-                    if ($mahasiswa && $mahasiswa->hasGoogleCalendarConnected()) {
-                        $googleCalendarMhs = new GoogleCalendarController();
-
-                        if ($googleCalendarMhs->initWithUserToken($mahasiswa)) {
-                            $serviceMhs = new \Google_Service_Calendar($googleCalendarMhs->getClient());
-
-                            // STRATEGI 1: Cari berdasarkan waktu dan tanggal spesifik, plus filter berdasarkan nama dosen
-                            try {
-                                $startTime = Carbon::parse($bimbingan->tanggal . ' ' . $bimbingan->waktu_mulai)->subHour()->toRfc3339String();
-                                $endTime = Carbon::parse($bimbingan->tanggal . ' ' . $bimbingan->waktu_selesai)->addHour()->toRfc3339String();
-
-                                $optParams = [
-                                    'timeMin' => $startTime,
-                                    'timeMax' => $endTime,
-                                    'singleEvents' => true,
-                                    'orderBy' => 'startTime',
-                                    'q' => $bimbingan->dosen->nama // Cari berdasarkan nama dosen
-                                ];
-
-                                $events = $serviceMhs->events->listEvents('primary', $optParams);
-                                $found = false;
-
-                                foreach ($events->getItems() as $event) {
-                                    $eventDesc = $event->getDescription() ?: '';
-                                    $eventTitle = $event->getSummary() ?: '';
-
-                                    // Cek apakah ini event bimbingan yang tepat berdasarkan deskripsi dan judul
-                                    if ((strpos($eventDesc, "NIM: {$bimbingan->nim}") !== false &&
-                                            strpos($eventDesc, "Dosen: {$bimbingan->dosen->nama}") !== false) ||
-                                        (strpos($eventTitle, 'Bimbingan') !== false &&
-                                            strpos($eventTitle, $bimbingan->dosen->nama) !== false)
-                                    ) {
-
-                                        // PERBAIKAN: Hapus event dari kalender mahasiswa alih-alih menandainya cancelled
-                                        $serviceMhs->events->delete('primary', $event->getId());
-
-                                        Log::info('Event di kalender mahasiswa berhasil dihapus', [
-                                            'event_id' => $event->getId()
-                                        ]);
-
-                                        $found = true;
-                                        break;
-                                    }
-                                }
-
-                                // Jika tidak ditemukan, tetap kirim notifikasi pembatalan
-                                if (!$found) {
-                                    // Buat event baru khusus untuk notifikasi
-                                    $newEvent = new \Google_Service_Calendar_Event();
-                                    $newEvent->setSummary('[DIBATALKAN] Bimbingan dengan ' . $bimbingan->dosen->nama);
-
-                                    // Atur waktu sesuai jadwal
-                                    $startDateTime = new \Google_Service_Calendar_EventDateTime();
-                                    $startDateTime->setDateTime(Carbon::parse($bimbingan->tanggal . ' ' . $bimbingan->waktu_mulai)->toRfc3339String());
-                                    $startDateTime->setTimeZone('Asia/Jakarta');
-                                    $newEvent->setStart($startDateTime);
-
-                                    $endDateTime = new \Google_Service_Calendar_EventDateTime();
-                                    $endDateTime->setDateTime(Carbon::parse($bimbingan->tanggal . ' ' . $bimbingan->waktu_selesai)->toRfc3339String());
-                                    $endDateTime->setTimeZone('Asia/Jakarta');
-                                    $newEvent->setEnd($endDateTime);
-
-                                    // Deskripsi
+                                    // Deskripsikan pembatalan
                                     $cancelDesc = "NOTIFIKASI PEMBATALAN BIMBINGAN\n\n";
-                                    $cancelDesc .= "Bimbingan dengan dosen {$bimbingan->dosen->nama} telah DIBATALKAN.\n\n";
+                                    $cancelDesc .= "Bimbingan dengan dosen {$dosen->nama} telah DIBATALKAN.\n\n";
                                     $cancelDesc .= "Detail bimbingan:\n";
-                                    $cancelDesc .= "- NIM: {$bimbingan->nim}\n";
-                                    $cancelDesc .= "- Tanggal: " . Carbon::parse($bimbingan->tanggal)->format('d-m-Y') . "\n";
-                                    $cancelDesc .= "- Waktu: {$bimbingan->waktu_mulai} - {$bimbingan->waktu_selesai}\n";
-                                    $cancelDesc .= "- Jenis: " . ucfirst($bimbingan->jenis_bimbingan) . "\n\n";
+                                    $cancelDesc .= "- NIM: {$mahasiswaUsulan->nim}\n";
+                                    $cancelDesc .= "- Tanggal: " . Carbon::parse($mahasiswaUsulan->tanggal)->format('d-m-Y') . "\n";
+                                    $cancelDesc .= "- Waktu: {$mahasiswaUsulan->waktu_mulai} - {$mahasiswaUsulan->waktu_selesai}\n";
+                                    $cancelDesc .= "- Jenis: " . ucfirst($mahasiswaUsulan->jenis_bimbingan) . "\n\n";
                                     $cancelDesc .= "Alasan pembatalan: {$request->alasan}\n";
                                     $cancelDesc .= "Waktu pembatalan: " . now()->format('d-m-Y H:i');
 
-                                    $newEvent->setDescription($cancelDesc);
+                                    $cancelNotificationEvent->setDescription($cancelDesc);
 
-                                    // Tambahkan mahasiswa sebagai attendee
-                                    $mhsAttendee = new \Google_Service_Calendar_EventAttendee();
-                                    $mhsAttendee->setEmail($mahasiswa->email);
-                                    $mhsAttendee->setDisplayName($mahasiswa->nama);
-                                    $newEvent->setAttendees([$mhsAttendee]);
+                                    // Set sebagai cancelled
+                                    $cancelNotificationEvent->setStatus('cancelled');
 
-                                    // Buat event notifikasi yang hanya untuk notifikasi
-                                    $notifEvent = $serviceMhs->events->insert('primary', $newEvent, [
-                                        'sendUpdates' => 'all' // Kirim notifikasi email
-                                    ]);
+                                    // Tambahkan mahasiswa sebagai satu-satunya attendee
+                                    $mahasiswaAttendee = new \Google_Service_Calendar_EventAttendee();
+                                    $mahasiswaAttendee->setEmail($mahasiswa->email);
+                                    $mahasiswaAttendee->setDisplayName($mahasiswa->nama);
+                                    $cancelNotificationEvent->setAttendees([$mahasiswaAttendee]);
 
-                                    // Segera hapus event tersebut agar tidak tampil di kalender mahasiswa
-                                    // Notifikasi email sudah terkirim saat insert, jadi hapus tidak akan membatalkan email
+                                    // Buat event notifikasi
                                     try {
-                                        $serviceMhs->events->delete('primary', $notifEvent->getId());
-                                        Log::info('Event notifikasi berhasil dihapus setelah notifikasi terkirim', [
+                                        $notifEvent = $service->events->insert('primary', $cancelNotificationEvent, [
+                                            'sendUpdates' => 'all', // Kirim notifikasi email
+                                            'supportsAttachments' => true
+                                        ]);
+
+                                        Log::info('Berhasil membuat notifikasi pembatalan untuk mahasiswa', [
+                                            'nama' => $mahasiswa->nama,
+                                            'nim' => $mahasiswa->nim,
                                             'notif_event_id' => $notifEvent->getId()
                                         ]);
                                     } catch (\Exception $e) {
-                                        Log::warning('Gagal menghapus event notifikasi: ' . $e->getMessage());
+                                        Log::error('Gagal membuat notifikasi pembatalan untuk mahasiswa: ' . $mahasiswa->nim, [
+                                            'error' => $e->getMessage()
+                                        ]);
+                                    }
+
+                                    // LANGKAH 3: UPDATE EVENT DI KALENDER MAHASISWA
+                                    if ($mahasiswa->hasGoogleCalendarConnected()) {
+                                        $googleCalendarMhs = new GoogleCalendarController();
+
+                                        if ($googleCalendarMhs->initWithUserToken($mahasiswa)) {
+                                            $serviceMhs = new \Google_Service_Calendar($googleCalendarMhs->getClient());
+
+                                            // Hapus semua event di kalender mahasiswa yang terkait dengan event ini
+                                            try {
+                                                // STRATEGI 1: Cari berdasarkan waktu dan tanggal spesifik
+                                                $startTime = Carbon::parse($mahasiswaUsulan->tanggal . ' ' . $mahasiswaUsulan->waktu_mulai)
+                                                    ->subHour()
+                                                    ->toRfc3339String();
+
+                                                $endTime = Carbon::parse($mahasiswaUsulan->tanggal . ' ' . $mahasiswaUsulan->waktu_selesai)
+                                                    ->addHour()
+                                                    ->toRfc3339String();
+
+                                                $optParams = [
+                                                    'timeMin' => $startTime,
+                                                    'timeMax' => $endTime,
+                                                    'singleEvents' => true,
+                                                    'orderBy' => 'startTime',
+                                                    'q' => $dosen->nama // Cari berdasarkan nama dosen
+                                                ];
+
+                                                $events = $serviceMhs->events->listEvents('primary', $optParams);
+                                                $found = false;
+
+                                                foreach ($events->getItems() as $event) {
+                                                    $eventDesc = $event->getDescription() ?: '';
+                                                    $eventTitle = $event->getSummary() ?: '';
+
+                                                    // Cek apakah ini event bimbingan yang tepat
+                                                    if ((strpos($eventDesc, "NIM: {$mahasiswaUsulan->nim}") !== false &&
+                                                            strpos($eventDesc, "Dosen: {$dosen->nama}") !== false) ||
+                                                        (strpos($eventTitle, 'Bimbingan') !== false &&
+                                                            strpos($eventTitle, $dosen->nama) !== false)
+                                                    ) {
+                                                        // HAPUS event dari kalender mahasiswa
+                                                        $serviceMhs->events->delete('primary', $event->getId());
+
+                                                        Log::info('Event di kalender mahasiswa berhasil dihapus', [
+                                                            'mahasiswa' => $mahasiswa->nim,
+                                                            'event_id' => $event->getId()
+                                                        ]);
+
+                                                        $found = true;
+                                                    }
+                                                }
+
+                                                // Jika tidak ditemukan, kirim notifikasi pembatalan terpisah
+                                                if (!$found) {
+                                                    // Buat event notifikasi pembatalan terpisah
+                                                    $newEvent = new \Google_Service_Calendar_Event();
+                                                    $newEvent->setSummary('[DIBATALKAN] Bimbingan dengan ' . $dosen->nama);
+
+                                                    // Atur waktu sesuai jadwal
+                                                    $startDateTime = new \Google_Service_Calendar_EventDateTime();
+                                                    $startDateTime->setDateTime(Carbon::parse($mahasiswaUsulan->tanggal . ' ' . $mahasiswaUsulan->waktu_mulai)->toRfc3339String());
+                                                    $startDateTime->setTimeZone('Asia/Jakarta');
+                                                    $newEvent->setStart($startDateTime);
+
+                                                    $endDateTime = new \Google_Service_Calendar_EventDateTime();
+                                                    $endDateTime->setDateTime(Carbon::parse($mahasiswaUsulan->tanggal . ' ' . $mahasiswaUsulan->waktu_selesai)->toRfc3339String());
+                                                    $endDateTime->setTimeZone('Asia/Jakarta');
+                                                    $newEvent->setEnd($endDateTime);
+
+                                                    // Deskripsi
+                                                    $cancelDesc = "NOTIFIKASI PEMBATALAN BIMBINGAN\n\n";
+                                                    $cancelDesc .= "Bimbingan dengan dosen {$dosen->nama} telah DIBATALKAN.\n\n";
+                                                    $cancelDesc .= "Detail bimbingan:\n";
+                                                    $cancelDesc .= "- NIM: {$mahasiswaUsulan->nim}\n";
+                                                    $cancelDesc .= "- Tanggal: " . Carbon::parse($mahasiswaUsulan->tanggal)->format('d-m-Y') . "\n";
+                                                    $cancelDesc .= "- Waktu: {$mahasiswaUsulan->waktu_mulai} - {$mahasiswaUsulan->waktu_selesai}\n";
+                                                    $cancelDesc .= "- Jenis: " . ucfirst($mahasiswaUsulan->jenis_bimbingan) . "\n\n";
+                                                    $cancelDesc .= "Alasan pembatalan: {$request->alasan}\n";
+                                                    $cancelDesc .= "Waktu pembatalan: " . now()->format('d-m-Y H:i');
+
+                                                    $newEvent->setDescription($cancelDesc);
+
+                                                    // Tambahkan mahasiswa sebagai attendee
+                                                    $mhsAttendee = new \Google_Service_Calendar_EventAttendee();
+                                                    $mhsAttendee->setEmail($mahasiswa->email);
+                                                    $mhsAttendee->setDisplayName($mahasiswa->nama);
+                                                    $newEvent->setAttendees([$mhsAttendee]);
+
+                                                    // Buat event notifikasi yang hanya untuk notifikasi
+                                                    try {
+                                                        $notifEvent = $serviceMhs->events->insert('primary', $newEvent, [
+                                                            'sendUpdates' => 'all' // Kirim notifikasi email
+                                                        ]);
+
+                                                        // Segera hapus event tersebut agar tidak tampil di kalender
+                                                        try {
+                                                            $serviceMhs->events->delete('primary', $notifEvent->getId());
+                                                            Log::info('Event notifikasi berhasil dihapus setelah notifikasi terkirim', [
+                                                                'mahasiswa' => $mahasiswa->nim,
+                                                                'notif_event_id' => $notifEvent->getId()
+                                                            ]);
+                                                        } catch (\Exception $e) {
+                                                            Log::warning('Gagal menghapus event notifikasi: ' . $e->getMessage());
+                                                        }
+                                                    } catch (\Exception $e) {
+                                                        Log::error('Gagal membuat event notifikasi untuk mahasiswa: ' . $mahasiswa->nim, [
+                                                            'error' => $e->getMessage()
+                                                        ]);
+                                                    }
+                                                }
+                                            } catch (\Exception $e) {
+                                                Log::error('Gagal mengelola event di kalender mahasiswa: ' . $mahasiswa->nim, [
+                                                    'error' => $e->getMessage()
+                                                ]);
+                                            }
+                                        } else {
+                                            Log::warning('Tidak bisa menginisialisasi Google Calendar mahasiswa: ' . $mahasiswa->nim);
+                                        }
+                                    } else {
+                                        Log::info('Mahasiswa tidak terhubung dengan Google Calendar: ' . $mahasiswa->nim);
                                     }
                                 }
                             } catch (\Exception $e) {
-                                Log::error('Gagal mengelola event di kalender mahasiswa: ' . $e->getMessage(), [
-                                    'trace' => $e->getTraceAsString()
+                                Log::error('Gagal mendapatkan atau mengupdate event dosen: ' . $e->getMessage(), [
+                                    'event_id' => $jadwal->event_id,
+                                    'exception' => $e
                                 ]);
                             }
-                        } else {
-                            Log::warning('Tidak bisa menginisialisasi Google Calendar mahasiswa');
                         }
-                    } else {
-                        Log::info('Mahasiswa tidak terhubung dengan Google Calendar');
                     }
                 } catch (\Exception $e) {
                     Log::error('Error saat memperbarui Google Calendar: ' . $e->getMessage(), [
