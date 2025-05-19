@@ -141,6 +141,7 @@
             --event-red: #fee2e2;
             --event-green: #dcfce7;
             --event-yellow: #fef3c7;
+            --event-orange: #ffca8d;
 
             /* Shadows */
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -380,7 +381,7 @@
         }
 
         .fc-event-mbkm {
-            background: var(--event-yellow) !important;
+            background: var(--event-orange) !important;
             color: #92400e !important;
             border-left: 3px solid #d97706 !important;
         }
@@ -1037,7 +1038,7 @@
               <ol class="guide-steps">
                 <li>Klik pada tanggal yang diinginkan di kalender</li>
                 <li>Masukkan waktu mulai dan waktu selesai bimbingan</li>
-                <li>Tambahkan catatan jika diperlukan</li>
+                <li>Tentukan Kuota dan Jenis Bimbingan jika diperlukan</li>
                 <li>Klik tombol "Simpan Jadwal"</li>
               </ol>
             </div>
@@ -1628,15 +1629,20 @@ eventClick: function(info) {
 
                         <!-- Quota Section if exists -->
                         ${hasKuotaLimit ? `
-                            <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
-                                <div style="background: #ecfdf5; padding: 8px; border-radius: 6px; margin-right: 12px;">
-                                    <i class="bi bi-people" style="font-size: 16px; color: #059669;"></i>
-                                </div>
-                                <div>
-                                    <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kuota</div>
-                                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${displayedPendaftar}/${statusData.kapasitas} Mahasiswa</div>
+                        <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                            <div style="background: #ecfdf5; padding: 8px; border-radius: 6px; margin-right: 12px;">
+                                <i class="bi bi-people" style="font-size: 16px; color: #059669;"></i>
+                            </div>
+                            <div>
+                                <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kuota</div>
+                                <div style="font-size: 14px; font-weight: 600; color: #1e293b;">
+                                    ${statusData.jumlah_pendaftar}/${statusData.kapasitas} Mahasiswa
+                                    ${statusData.selesai_count > 0 ? 
+                                    `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">(${statusData.aktif_count} aktif, ${statusData.selesai_count} selesai)</div>` : 
+                                    ''}
                                 </div>
                             </div>
+                        </div>
                         ` : ''}
 
                         <!-- Status Section -->
@@ -1731,10 +1737,15 @@ eventClick: function(info) {
                                 </div>
                                 <div>
                                     <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">Kuota</div>
-                                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">${info.event.extendedProps.jumlah_pendaftar || 0}/${info.event.extendedProps.kuota || 0} Mahasiswa</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: #1e293b;">
+                                        ${statusData.jumlah_pendaftar}/${statusData.kapasitas} Mahasiswa
+                                        ${statusData.selesai_count > 0 ? 
+                                        `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">(${statusData.aktif_count} aktif, ${statusData.selesai_count} selesai)</div>` : 
+                                        ''}
+                                    </div>
                                 </div>
                             </div>
-                        ` : ''}
+                            ` : ''}
 
                         <!-- Status Section -->
                         <div class="info-row" style="display: flex; align-items: center; margin-bottom: 12px; padding: 10px; background: #f8fafc; border-radius: 8px;">

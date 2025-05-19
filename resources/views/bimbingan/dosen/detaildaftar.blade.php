@@ -198,6 +198,75 @@
     right: 14px;
   }
 }
+
+/* Pagination styles */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: #2563eb; /* Mempertahankan warna biru */
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem 0.75rem;
+}
+
+.page-link:hover {
+    color: #1d4ed8;
+    background-color: #f3f4f6;
+}
+
+.page-item.active .page-link {
+    background-color: #2563eb; /* Warna biru untuk active */
+    border-color: #2563eb;
+    color: white;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .pagination {
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    
+    .pagination .page-item {
+        margin-bottom: 5px;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        text-align: center;
+        width: 100%;
+    }
+}
+
+@media (min-width: 992px) {
+    .d-flex.flex-column.flex-lg-row {
+        align-items: center;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+    
+    .pagination {
+        margin-left: 15px;
+    }
+}
+
+/* Mobile optimization */
+@media (max-width: 575.98px) {
+    .page-link {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+    }
+}
 </style>
 @endpush
 
@@ -220,12 +289,12 @@
                     <div class="d-flex align-items-center">
                         <label class="me-2">Tampilkan</label>
                         <select class="form-select form-select-sm w-auto" id="show-entries">
-                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
-                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                             <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                             <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                            <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                         </select>
-                        <label class="ms-2">entri</label>
+                        <label class="ms-2">entries</label>
                     </div>
                 </div>
                 <div class="col-lg-6 col-md-6">
@@ -292,13 +361,13 @@
             </div>
     
             @if($bimbingan instanceof \Illuminate\Pagination\LengthAwarePaginator)
-            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3">
-                <p class="mb-2">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center mt-3">
+                <p class="mb-3 mb-lg-0">
                     Menampilkan {{ $bimbingan->firstItem() ?? 0 }} sampai {{ $bimbingan->lastItem() ?? 0 }} 
                     dari {{ $bimbingan->total() ?? 0 }} entri
                 </p>
                 <nav aria-label="Page navigation">
-                    <ul class="pagination mb-0 justify-content-center">
+                    <ul class="pagination mb-0 justify-content-center justify-content-lg-end">
                         {{-- Previous Page Link --}}
                         @if ($bimbingan->onFirstPage())
                             <li class="page-item disabled">
@@ -309,12 +378,12 @@
                                 <a class="page-link" href="{{ $bimbingan->previousPageUrl() }}" rel="prev">« Sebelumnya</a>
                             </li>
                         @endif
-    
+
                         {{-- Pagination Elements --}}
                         @php
                         $urlParams = request()->except('page');
                         @endphp
-    
+
                         @foreach ($bimbingan->getUrlRange(1, $bimbingan->lastPage()) as $page => $url)
                             @php
                             $currentUrl = $url;
@@ -333,7 +402,7 @@
                                 </li>
                             @endif
                         @endforeach
-    
+
                         {{-- Next Page Link --}}
                         @if ($bimbingan->hasMorePages())
                             <li class="page-item">

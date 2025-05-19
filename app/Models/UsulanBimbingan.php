@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UsulanBimbingan extends Model
 {
     use HasFactory;
-    
+
     protected $fillable = [
         'nim',
         'nip',
@@ -23,15 +23,15 @@ class UsulanBimbingan extends Model
         'waktu_mulai',
         'waktu_selesai',
         'lokasi',
-        'status',       
+        'status',
         'keterangan',
         'nomor_antrian'
     ];
 
     protected $casts = [
         'tanggal' => 'date',
-        'waktu_mulai' => 'string', 
-        'waktu_selesai' => 'string', 
+        'waktu_mulai' => 'string',
+        'waktu_selesai' => 'string',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'nomor_antrian' => 'integer'
@@ -64,9 +64,9 @@ class UsulanBimbingan extends Model
     // Accessor 
     public function getWaktuLengkapAttribute(): string
     {
-        return Carbon::parse($this->tanggal)->format('l, d F Y') . 
-               ' | ' . 
-               $this->waktu_mulai . ' - ' . $this->waktu_selesai;
+        return Carbon::parse($this->tanggal)->format('l, d F Y') .
+            ' | ' .
+            $this->waktu_mulai . ' - ' . $this->waktu_selesai;
     }
 
     public function setujui(?string $lokasi = null): bool
@@ -76,8 +76,8 @@ class UsulanBimbingan extends Model
 
             // Dapatkan nomor antrian terakhir untuk jadwal yang sama
             $lastQueue = self::where('event_id', $this->event_id)
-                            ->where('status', self::STATUS_DISETUJUI)
-                            ->max('nomor_antrian') ?? 0;
+                ->where('status', self::STATUS_DISETUJUI)
+                ->max('nomor_antrian') ?? 0;
 
             // Set nomor antrian berikutnya
             $nextQueue = $lastQueue + 1;
@@ -119,17 +119,17 @@ class UsulanBimbingan extends Model
     public function getTotalQueue(): int
     {
         return self::where('event_id', $this->event_id)
-                  ->where('status', self::STATUS_DISETUJUI)
-                  ->count();
+            ->where('status', self::STATUS_DISETUJUI)
+            ->count();
     }
 
     // Method untuk mengatur ulang antrian jika ada pembatalan
     public static function reorderQueue(string $event_id): void
     {
         $bimbingans = self::where('event_id', $event_id)
-                         ->where('status', self::STATUS_DISETUJUI)
-                         ->orderBy('nomor_antrian')
-                         ->get();
+            ->where('status', self::STATUS_DISETUJUI)
+            ->orderBy('nomor_antrian')
+            ->get();
 
         $newQueue = 1;
         foreach ($bimbingans as $bimbingan) {

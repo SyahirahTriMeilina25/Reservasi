@@ -15,7 +15,7 @@ class MahasiswaController extends Controller
     {
         try {
             $activeTab = $request->query('tab', 'usulan');
-            $perPage = $request->query('per_page', 10);
+            $perPage = intval($request->query('per_page', 50));
             $nim = Auth::user()->nim;
 
             // Default values
@@ -142,7 +142,7 @@ class MahasiswaController extends Controller
     public function getDetailDaftar($nip, Request $request)
     {
         try {
-            $perPage = $request->input('per_page', 10);
+            $perPage = $request->input('per_page', 50);
 
             $dosen = DB::table('dosens')
                 ->where('nip', $nip)

@@ -4,6 +4,83 @@
 
 @push('styles')
 <style>
+
+    /* Style untuk event yang dibatalkan */
+.cancelled-event {
+    text-decoration: line-through !important;
+    opacity: 0.7 !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+/* Style untuk tombol batalkan */
+.fc-event .cancel-button {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(255,255,255,0.7);
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    font-size: 14px;
+    color: #dc3545;
+    cursor: pointer;
+    z-index: 10;
+    display: none;
+}
+
+.fc-event:hover .cancel-button {
+    display: block;
+}
+
+/* Style untuk notifikasi undangan */
+.notification-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border-left: 4px solid #28a745;
+    overflow: hidden;
+    z-index: 9999;
+    animation: slideInUp 0.3s ease-out;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.notification-header .close-btn {
+    border: none;
+    background: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.notification-body {
+    padding: 15px;
+}
+
+/* Animasi untuk notifikasi */
+@keyframes slideInUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOutDown {
+    from { transform: translateY(0); opacity: 1; }
+    to { transform: translateY(100%); opacity: 0; }
+}
     /* ==============================================
        1. STYLE UNTUK HALAMAN UTAMA (KOMPONEN CARD & TABEL)
        ============================================== */
@@ -833,6 +910,79 @@
     right: 14px;
   }
 }
+
+/* ==============================================
+   9. Style pagination 
+   ============================================== */
+
+   /* Pagination styles */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: #2563eb; /* Mempertahankan warna biru */
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem 0.75rem;
+}
+
+.page-link:hover {
+    color: #1d4ed8;
+    background-color: #f3f4f6;
+}
+
+.page-item.active .page-link {
+    background-color: #2563eb; /* Warna biru untuk active */
+    border-color: #2563eb;
+    color: white;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .pagination {
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    
+    .pagination .page-item {
+        margin-bottom: 5px;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        text-align: center;
+        width: 100%;
+    }
+}
+
+@media (min-width: 992px) {
+    .d-flex.flex-column.flex-lg-row {
+        align-items: center;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+    
+    .pagination {
+        margin-left: 15px;
+    }
+}
+
+/* Mobile optimization */
+@media (max-width: 575.98px) {
+    .page-link {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+    }
+}
     </style>
 @endpush
 
@@ -850,26 +1000,26 @@
             <div class="card-header bg-white p-0">
                 <ul class="nav nav-tabs" id="bimbinganTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('dosen.persetujuan', ['tab' => 'usulan', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('dosen.persetujuan', ['tab' => 'usulan', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'usulan' ? 'active' : '' }}">
                             Usulan
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('dosen.persetujuan', ['tab' => 'jadwal', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('dosen.persetujuan', ['tab' => 'jadwal', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'jadwal' ? 'active' : '' }}">
                             Jadwal
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('dosen.persetujuan', ['tab' => 'riwayat', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('dosen.persetujuan', ['tab' => 'riwayat', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'riwayat' ? 'active' : '' }}">
                             Riwayat
                         </a>
                     </li>
                     @if(auth()->user()->isKoordinatorProdi())
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'pengelola' ? 'active' : '' }}">
                             Pengelola
                         </a>
@@ -887,11 +1037,11 @@
                                     <div class="d-flex align-items-center">
                                         <label class="me-2">Tampilkan</label>
                                         <select class="form-select form-select-sm w-auto"
-                                            onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'usulan']) }}&per_page=' + this.value">
-                                            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
-                                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                        onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'usulan']) }}&per_page=' + this.value">
+                                            <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                                             <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                                             <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                            <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                                         </select>
                                         <label class="ms-2">entries</label>
                                     </div>
@@ -1018,11 +1168,11 @@
                                             <div class="d-flex align-items-center">
                                                 <label class="me-2">Tampilkan</label>
                                                 <select class="form-select form-select-sm w-auto"
-                                                    onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'usulan']) }}&per_page=' + this.value">
-                                                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
-                                                    <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                                onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'jadwal']) }}&per_page=' + this.value">
+                                                    <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                                                     <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                                                     <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                                    <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                                                 </select>
                                                 <label class="ms-2">entries</label>
                                             </div>
@@ -1147,11 +1297,11 @@
                                     <div class="d-flex align-items-center">
                                         <label class="me-2">Tampilkan</label>
                                         <select class="form-select form-select-sm w-auto"
-                                            onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'usulan']) }}&per_page=' + this.value">
-                                            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
-                                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                        onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'riwayat']) }}&per_page=' + this.value">
+                                            <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                                             <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                                             <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                            <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                                         </select>
                                         <label class="ms-2">entries</label>
                                     </div>
@@ -1239,11 +1389,11 @@
                                         <div class="d-flex align-items-center">
                                             <label class="me-2">Tampilkan</label>
                                             <select class="form-select form-select-sm w-auto"
-                                                onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}&per_page=' + this.value">
-                                                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
-                                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                                            onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}&per_page=' + this.value">
+                                                <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                                                 <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                                                 <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                                <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                                             </select>
                                             <label class="ms-2">entries</label>
                                         </div>
@@ -1349,11 +1499,11 @@
                                         <div class="d-flex align-items-center">
                                             <label class="me-2">Tampilkan</label>
                                             <select class="form-select form-select-sm w-auto"
-                                                onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}&per_page_riwayat=' + this.value">
-                                                <option value="10" {{ request('per_page_riwayat', 10) == 10 ? 'selected' : '' }}>10</option>
-                                                <option value="50" {{ request('per_page_riwayat') == 50 ? 'selected' : '' }}>50</option>
-                                                <option value="100" {{ request('per_page_riwayat') == 100 ? 'selected' : '' }}>100</option>
-                                                <option value="150" {{ request('per_page_riwayat') == 150 ? 'selected' : '' }}>150</option>
+                                            onchange="window.location.href='{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}&per_page=' + this.value">
+                                                <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
+                                                <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
+                                                <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                                <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                                             </select>
                                             <label class="ms-2">entries</label>
                                         </div>
@@ -1451,8 +1601,8 @@
                     @endif
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3">
-                    <p class="mb-2">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center mt-3">
+                    <p class="mb-3 mb-lg-0">
                         @if ($activeTab == 'usulan' && $usulan->total() > 0)
                             Menampilkan {{ $usulan->firstItem() }} sampai {{ $usulan->lastItem() }} dari
                             {{ $usulan->total() }} entri
@@ -1462,7 +1612,7 @@
                         @endif
                     </p>
                     <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-end mb-0">
+                        <ul class="pagination justify-content-center justify-content-lg-end mb-0">
                             {{-- Previous Page --}}
                             @if ($activeTab == 'usulan')
                                 @if ($usulan->onFirstPage())
@@ -1475,7 +1625,7 @@
                                             href="{{ $usulan->previousPageUrl() }}&tab=usulan">« Sebelumnya</a>
                                     </li>
                                 @endif
-
+                
                                 {{-- Page Numbers --}}
                                 @foreach ($usulan->getUrlRange(1, $usulan->lastPage()) as $page => $url)
                                     <li class="page-item {{ $page == $usulan->currentPage() ? 'active' : '' }}">
@@ -1483,7 +1633,7 @@
                                             href="{{ $url }}&tab=usulan">{{ $page }}</a>
                                     </li>
                                 @endforeach
-
+                
                                 {{-- Next Page --}}
                                 @if ($usulan->hasMorePages())
                                     <li class="page-item">
@@ -1506,14 +1656,14 @@
                                             href="{{ $riwayat->previousPageUrl() }}&tab=riwayat">« Sebelumnya</a>
                                     </li>
                                 @endif
-
+                
                                 @foreach ($riwayat->getUrlRange(1, $riwayat->lastPage()) as $page => $url)
                                     <li class="page-item {{ $page == $riwayat->currentPage() ? 'active' : '' }}">
                                         <a class="page-link"
                                             href="{{ $url }}&tab=riwayat">{{ $page }}</a>
                                     </li>
                                 @endforeach
-
+                
                                 @if ($riwayat->hasMorePages())
                                     <li class="page-item">
                                         <a class="page-link"
@@ -1532,7 +1682,6 @@
         </div>
     </div>
 
-    <!-- Modal Terima -->
     <!-- Modal Terima yang Diperbaiki -->
     <div class="modal fade" id="modalTerima" tabindex="-1" aria-labelledby="modalTerimaLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -1714,7 +1863,9 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>document.addEventListener('DOMContentLoaded', function() {
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     let currentRow = null;
     let currentId = null;
     let currentSelesaiId = null;
@@ -1732,6 +1883,7 @@
     const bsModalSelesai = modalSelesai ? new bootstrap.Modal(modalSelesai) : null;
     const bsModalBatal = modalBatal ? new bootstrap.Modal(modalBatal) : null;
 
+    // Inisialisasi tooltips
     function initializeTooltips() {
         if (typeof bootstrap !== 'undefined') {
             const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -1747,55 +1899,60 @@
 
     // Function to update row after approval/rejection
     function updateRowAfterAction(row, id, lokasi, status) {
-    if (!row) return;
+        if (!row) return;
 
-    const statusCell = row.querySelector('td:nth-child(9)'); // Adjusted to correct column
-    if (statusCell) {
-        statusCell.textContent = status;
-        statusCell.className = 'fw-bold text-white';
+        const statusCell = row.querySelector('td:nth-child(9)'); // Adjusted to correct column
+        if (statusCell) {
+            statusCell.textContent = status;
+            statusCell.className = 'fw-bold text-white';
 
-        if (status === 'DISETUJUI') {
-            statusCell.classList.add('bg-success');
-        } else if (status === 'DITOLAK') {
-            statusCell.classList.add('bg-danger');
-        } else if (status === 'DIBATALKAN') { // Tambahkan kondisi untuk status DIBATALKAN
-            statusCell.classList.add('bg-secondary');
-        } else if (status === 'SELESAI') {
-            statusCell.classList.add('bg-primary');
-        } else {
-            statusCell.classList.add('bg-warning');
+            if (status === 'DISETUJUI') {
+                statusCell.classList.add('bg-success');
+            } else if (status === 'DITOLAK') {
+                statusCell.classList.add('bg-danger');
+            } else if (status === 'DIBATALKAN') { // Tambahkan kondisi untuk status DIBATALKAN
+                statusCell.classList.add('bg-secondary');
+            } else if (status === 'SELESAI') {
+                statusCell.classList.add('bg-primary');
+            } else {
+                statusCell.classList.add('bg-warning');
+            }
+        }
+
+        if (lokasi) {
+            const lokasiCell = row.querySelector('td:nth-child(7)');
+            if (lokasiCell) {
+                lokasiCell.textContent = lokasi;
+            }
+        }
+
+        const actionCell = row.querySelector('.action-icons');
+        if (actionCell) {
+            actionCell.innerHTML = `
+                <a href="/dosen/detailbimbingan/${id}" 
+                   class="action-icon info-icon" 
+                   data-bs-toggle="tooltip" 
+                   title="Info">
+                    <i class="bi bi-info-circle"></i>
+                </a>`;
+            initializeTooltips();
         }
     }
-
-    if (lokasi) {
-        const lokasiCell = row.querySelector('td:nth-child(7)');
-        if (lokasiCell) {
-            lokasiCell.textContent = lokasi;
-        }
-    }
-
-    const actionCell = row.querySelector('.action-icons');
-    if (actionCell) {
-        actionCell.innerHTML = `
-            <a href="/dosen/detailbimbingan/${id}" 
-               class="action-icon info-icon" 
-               data-bs-toggle="tooltip" 
-               title="Info">
-                <i class="bi bi-info-circle"></i>
-            </a>`;
-        initializeTooltips();
-    }
-}
 
     // Setup modal handling for approve action
     document.querySelectorAll('.approve-icon').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             currentRow = this.closest('tr');
             currentId = currentRow.getAttribute('data-id');
 
-            if (!currentRow || !currentId) return;
+            if (!currentRow || !currentId) {
+                console.error('Tidak bisa mendapatkan ID atau baris untuk tombol approve');
+                return;
+            }
 
+            console.log('Tombol approve diklik, ID:', currentId);
             if (bsModalTerima) bsModalTerima.show();
         });
     });
@@ -1804,48 +1961,266 @@
     document.querySelectorAll('.reject-icon').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
+            e.stopPropagation();
             currentRow = this.closest('tr');
             currentId = currentRow.getAttribute('data-id');
 
-            if (!currentRow || !currentId) return;
+            if (!currentRow || !currentId) {
+                console.error('Tidak bisa mendapatkan ID atau baris untuk tombol reject');
+                return;
+            }
 
+            console.log('Tombol reject diklik, ID:', currentId);
             if (bsModalTolak) bsModalTolak.show();
         });
     });
 
     // Setup modal handler untuk tombol selesai
     document.querySelectorAll('.selesai-btn').forEach(button => {
-    button.addEventListener('click', async function(e) {
-        e.preventDefault();
-        currentSelesaiId = this.getAttribute('data-id');
-        console.log('Button selesai diklik, ID:', currentSelesaiId);
-        
-        // Fetch additional data about the guidance session
-        try {
-            const row = this.closest('tr');
-            if (row) {
-                const mahasiswaNama = row.querySelector('td:nth-child(3)').textContent.trim();
-                const jenisBimbingan = row.querySelector('td:nth-child(4)').textContent.trim();
-                
-                // Update modal with contextual information
-                const mhsNameConfirm = document.getElementById('mhs-name-confirm');
-                const jenisBimbinganConfirm = document.getElementById('jenis-bimbingan-confirm');
-                
-                if (mhsNameConfirm) mhsNameConfirm.textContent = mahasiswaNama;
-                if (jenisBimbinganConfirm) jenisBimbinganConfirm.textContent = jenisBimbingan;
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            currentSelesaiId = this.getAttribute('data-id');
+            console.log('Button selesai diklik, ID:', currentSelesaiId);
+            
+            if (!currentSelesaiId) {
+                console.error('ID tidak ditemukan untuk tombol selesai');
+                return;
             }
-        } catch (error) {
-            console.error('Error getting row data:', error);
-        }
-        
-        if (bsModalSelesai) bsModalSelesai.show();
+            
+            // Fetch additional data about the guidance session
+            try {
+                const row = this.closest('tr');
+                if (row) {
+                    const mahasiswaNama = row.querySelector('td:nth-child(3)').textContent.trim();
+                    const jenisBimbingan = row.querySelector('td:nth-child(4)').textContent.trim();
+                    
+                    // Update modal with contextual information
+                    const mhsNameConfirm = document.getElementById('mhs-name-confirm');
+                    const jenisBimbinganConfirm = document.getElementById('jenis-bimbingan-confirm');
+                    
+                    if (mhsNameConfirm) mhsNameConfirm.textContent = mahasiswaNama;
+                    if (jenisBimbinganConfirm) jenisBimbinganConfirm.textContent = jenisBimbingan;
+                }
+            } catch (error) {
+                console.error('Error getting row data:', error);
+            }
+            
+            if (bsModalSelesai) bsModalSelesai.show();
+        });
     });
-});
+
+    // Setup event listener untuk tombol batal
+    document.querySelectorAll('.batal-btn').forEach(button => {
+        button.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            currentBatalId = this.getAttribute('data-id');
+            console.log('Tombol batal diklik, ID:', currentBatalId);
+            
+            if (!currentBatalId) {
+                console.error('ID tidak ditemukan untuk tombol batal');
+                return;
+            }
+            
+            // Reset form state
+            const alasanInput = document.getElementById('alasanPembatalan');
+            if (alasanInput) {
+                alasanInput.value = '';
+                alasanInput.classList.remove('is-invalid');
+            }
+            
+            // Reset daftar jadwal terkait
+            const relatedSchedulesList = document.getElementById('relatedSchedulesList');
+            if (relatedSchedulesList) {
+                relatedSchedulesList.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="ms-2">Memuat data jadwal terkait...</span>
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Reset checkbox "Pilih Semua"
+            const selectAllCheckbox = document.getElementById('selectAllRelatedSchedules');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+            }
+                
+            // Ambil data jadwal yang berkaitan dengan waktu yang sama
+            try {
+                const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                
+                const response = await fetch(`/persetujuan/related-schedules/${currentBatalId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    }
+                });
+                
+                const responseText = await response.text();
+                console.log('Raw API Response:', responseText);
+                
+                // Coba parse response sebagai JSON
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Failed to parse response as JSON:', parseError);
+                    throw new Error('Invalid JSON response');
+                }
+                console.log('Parsed API Response:', result);
+                
+                if (result.success) {
+                    const relatedSchedules = result.schedules || [];
+                    const noRelatedMsg = document.getElementById('noRelatedSchedules');
+                    const tbody = document.getElementById('relatedSchedulesList');
+                    
+                    // Tampilkan pesan jika tidak ada jadwal terkait
+                    if (relatedSchedules.length === 0) {
+                        if (noRelatedMsg) noRelatedMsg.classList.remove('d-none');
+                        if (tbody) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="5" class="text-center">Tidak ada jadwal terkait</td>
+                                </tr>
+                            `;
+                        }
+                    } else {
+                        if (noRelatedMsg) noRelatedMsg.classList.add('d-none');
+                        
+                        // Render daftar jadwal terkait
+                        if (tbody) {
+                            tbody.innerHTML = '';
+                            relatedSchedules.forEach(schedule => {
+                                const scheduleData = schedule.stdClass || schedule;
+                                
+                                const nim = scheduleData.nim || schedule.nim;
+                                const nama = scheduleData.mahasiswa_nama || schedule.mahasiswa_nama;
+                                
+                                // Periksa apakah format waktu valid sebelum konversi
+                                let waktuMulai = 'Tidak tersedia';
+                                let waktuSelesai = 'Tidak tersedia';
+                                
+                                try {
+                                    // Waktu mulai
+                                    if (schedule.waktu_mulai) {
+                                        if (schedule.waktu_mulai.includes(':') && !schedule.waktu_mulai.includes('-')) {
+                                            const [hours, minutes] = schedule.waktu_mulai.split(':');
+                                            waktuMulai = `${hours}:${minutes}`;
+                                        } else {
+                                            waktuMulai = new Date(schedule.waktu_mulai).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                                        }
+                                    }
+                                    
+                                    // Waktu selesai
+                                    if (schedule.waktu_selesai) {
+                                        if (schedule.waktu_selesai.includes(':') && !schedule.waktu_selesai.includes('-')) {
+                                            const [hours, minutes] = schedule.waktu_selesai.split(':');
+                                            waktuSelesai = `${hours}:${minutes}`;
+                                        } else {
+                                            waktuSelesai = new Date(schedule.waktu_selesai).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                                        }
+                                    }
+                                } catch (error) {
+                                    console.error('Error saat memformat waktu:', error);
+                                }
+                                
+                                tbody.innerHTML += `
+                                    <tr>
+                                        <td class="text-center">
+                                            <input class="form-check-input related-schedule-check" 
+                                                type="checkbox" 
+                                                value="${schedule.id}" 
+                                                id="schedule-${schedule.id}">
+                                        </td>
+                                        <td>${nim}</td>
+                                        <td>${nama}</td>
+                                        <td>${schedule.jenis_bimbingan ? schedule.jenis_bimbingan.charAt(0).toUpperCase() + schedule.jenis_bimbingan.slice(1) : ''}</td>
+                                        <td>${waktuMulai} - ${waktuSelesai}</td>
+                                    </tr>
+                                `;
+                            });
+                        }       
+                    }
+                    
+                    // Tampilkan modal
+                    if (bsModalBatal) bsModalBatal.show();
+                } else {
+                    // TAMBAHAN: Cek apakah error karena jadwal sudah lewat
+                    if (result.message && result.message.toLowerCase().includes('lewat waktu')) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Tidak Dapat Dibatalkan',
+                            text: 'Jadwal bimbingan tidak dapat dibatalkan karena sudah lewat waktu',
+                            confirmButtonColor: '#dc3545'
+                        });
+                        return; // Hentikan proses
+                    }
+                    
+                    throw new Error(result.message || 'Gagal memuat jadwal terkait');
+                }
+            } catch (error) {
+                console.error('Error fetching related schedules:', error);
+                
+                // TAMBAHAN: Cek apakah error berkaitan dengan jadwal yang sudah lewat
+                if (error.message && error.message.toLowerCase().includes('lewat waktu')) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tidak Dapat Dibatalkan',
+                        text: 'Jadwal bimbingan tidak dapat dibatalkan karena sudah lewat waktu',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return; // Hentikan proses
+                }
+                
+                const relatedSchedulesList = document.getElementById('relatedSchedulesList');
+                if (relatedSchedulesList) {
+                    relatedSchedulesList.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-danger">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                Gagal memuat data jadwal terkait
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                // Tetap tampilkan modal untuk error lainnya
+                if (bsModalBatal) bsModalBatal.show();
+            }
+        });
+    });
+
+    // Event listener untuk checkbox "Pilih Semua"
+    const selectAllCheckbox = document.getElementById('selectAllRelatedSchedules');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            console.log('Select all checkbox changed, checked:', this.checked);
+            const isChecked = this.checked;
+            document.querySelectorAll('.related-schedule-check').forEach(checkbox => {
+                checkbox.checked = isChecked;
+                console.log('Setting checkbox', checkbox.id, 'to', isChecked);
+            });
+        });
+    } else {
+        console.warn('Select all checkbox not found in the DOM');
+    }
 
     // Handle approve confirmation
     document.getElementById('confirmTerima')?.addEventListener('click', async function() {
         const lokasiInput = document.getElementById('lokasiBimbingan');
-        if (!lokasiInput || !currentId || !currentRow) return;
+        if (!lokasiInput || !currentId || !currentRow) {
+            console.error('Data tidak lengkap:', { lokasiInput, currentId, currentRow });
+            return;
+        }
 
         const lokasi = lokasiInput.value.trim();
         if (!lokasi) {
@@ -1855,19 +2230,34 @@
 
         try {
             this.disabled = true;
+            console.log('Sending approval with ID:', currentId, 'and location:', lokasi);
 
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             const response = await fetch(`/persetujuan/terima/${currentId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     lokasi: lokasi
                 })
             });
 
-            const data = await response.json();
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Parsed JSON:', data);
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                throw new Error('Invalid JSON response: ' + responseText);
+            }
 
             if (data.success) {
                 if (bsModalTerima) bsModalTerima.hide();
@@ -1899,7 +2289,10 @@
     // Handle reject confirmation
     document.getElementById('confirmTolak')?.addEventListener('click', async function() {
         const alasanInput = document.getElementById('alasanPenolakan');
-        if (!alasanInput || !currentId || !currentRow) return;
+        if (!alasanInput || !currentId || !currentRow) {
+            console.error('Data tidak lengkap:', { alasanInput, currentId, currentRow });
+            return;
+        }
 
         const alasan = alasanInput.value.trim();
         if (!alasan) {
@@ -1909,19 +2302,34 @@
 
         try {
             this.disabled = true;
+            console.log('Sending rejection with ID:', currentId, 'and reason:', alasan);
 
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             const response = await fetch(`/persetujuan/tolak/${currentId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': token,
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     keterangan: alasan
                 })
             });
 
-            const data = await response.json();
+            console.log('Response status:', response.status);
+            const responseText = await response.text();
+            console.log('Response text:', responseText);
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+                console.log('Parsed JSON:', data);
+            } catch (e) {
+                console.error('Error parsing JSON:', e);
+                throw new Error('Invalid JSON response: ' + responseText);
+            }
 
             if (data.success) {
                 if (bsModalTolak) bsModalTolak.hide();
@@ -1953,7 +2361,7 @@
     // Handle konfirmasi selesai
     document.getElementById('confirmSelesai')?.addEventListener('click', async function() {
         if (!currentSelesaiId) {
-            console.log('Error: currentSelesaiId kosong');
+            console.error('Error: currentSelesaiId kosong');
             return;
         }
 
@@ -2022,177 +2430,13 @@
         }
     });
 
-    // Setup event listener untuk tombol batal
-    document.querySelectorAll('.batal-btn').forEach(button => {
-        button.addEventListener('click', async function(e) {
-            e.preventDefault();
-            currentBatalId = this.getAttribute('data-id');
-            
-            // Reset form state
-            const alasanInput = document.getElementById('alasanPembatalan');
-            if (alasanInput) {
-                alasanInput.value = '';
-                alasanInput.classList.remove('is-invalid');
-            }
-            
-            // Reset daftar jadwal terkait
-            const relatedSchedulesList = document.getElementById('relatedSchedulesList');
-            if (relatedSchedulesList) {
-                relatedSchedulesList.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="text-center">
-                            <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <span class="ms-2">Memuat data jadwal terkait...</span>
-                        </td>
-                    </tr>
-                `;
-            }
-            
-            // Reset checkbox "Pilih Semua"
-            const selectAllCheckbox = document.getElementById('selectAllRelatedSchedules');
-            if (selectAllCheckbox) {
-                selectAllCheckbox.checked = false;
-            }
-                
-            // Ambil data jadwal yang berkaitan dengan waktu yang sama
-            try {
-                const response = await fetch(`/persetujuan/related-schedules/${currentBatalId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    }
-                });
-                
-                const responseText = await response.text();
-                console.log('Raw API Response:', responseText);
-                
-                // Coba parse response sebagai JSON
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch (parseError) {
-                    console.error('Failed to parse response as JSON:', parseError);
-                    throw new Error('Invalid JSON response');
-                }
-                console.log('Parsed API Response:', result);
-                
-                if (result.success) {
-                    const relatedSchedules = result.schedules || [];
-                    const noRelatedMsg = document.getElementById('noRelatedSchedules');
-                    const tbody = document.getElementById('relatedSchedulesList');
-                    
-                    // Tampilkan pesan jika tidak ada jadwal terkait
-                    if (relatedSchedules.length === 0) {
-                        if (noRelatedMsg) noRelatedMsg.classList.remove('d-none');
-                        if (tbody) {
-                            tbody.innerHTML = `
-                                <tr>
-                                    <td colspan="5" class="text-center">Tidak ada jadwal terkait</td>
-                                </tr>
-                            `;
-                        }
-                    } else {
-                        if (noRelatedMsg) noRelatedMsg.classList.add('d-none');
-                        
-                        // Render daftar jadwal terkait
-                        if (tbody) {
-                            tbody.innerHTML = '';
-                            relatedSchedules.forEach(schedule => {
-                                const scheduleData = schedule.stdClass || schedule;
-                                
-                                const nim = scheduleData.nim;
-                                const nama = scheduleData.mahasiswa_nama;
-                                
-                                // Periksa apakah format waktu valid sebelum konversi
-                                let waktuMulai = 'Tidak tersedia';
-                                let waktuSelesai = 'Tidak tersedia';
-                                
-                                try {
-                                    // Cek apakah waktu_mulai berisi tanggal lengkap atau hanya waktu
-                                    if (schedule.waktu_mulai) {
-                                        // Jika hanya berisi format waktu (09:54:00)
-                                        if (schedule.waktu_mulai.includes(':') && !schedule.waktu_mulai.includes('-')) {
-                                            const [hours, minutes] = schedule.waktu_mulai.split(':');
-                                            waktuMulai = `${hours}:${minutes}`;
-                                        } else {
-                                            waktuMulai = new Date(schedule.waktu_mulai).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-                                        }
-                                    }
-                                    
-                                    if (schedule.waktu_selesai) {
-                                        if (schedule.waktu_selesai.includes(':') && !schedule.waktu_selesai.includes('-')) {
-                                            const [hours, minutes] = schedule.waktu_selesai.split(':');
-                                            waktuSelesai = `${hours}:${minutes}`;
-                                        } else {
-                                            waktuSelesai = new Date(schedule.waktu_selesai).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-                                        }
-                                    }
-                                } catch (error) {
-                                    console.error('Error saat memformat waktu:', error);
-                                }
-                                
-                                tbody.innerHTML += `
-                                    <tr>
-                                        <td class="text-center">
-                                            <input class="form-check-input related-schedule-check" 
-                                                type="checkbox" 
-                                                value="${schedule.id}" 
-                                                id="schedule-${schedule.id}">
-                                        </td>
-                                        <td>${nim}</td>
-                                        <td>${nama}</td>
-                                        <td>${schedule.jenis_bimbingan ? schedule.jenis_bimbingan.charAt(0).toUpperCase() + schedule.jenis_bimbingan.slice(1) : ''}</td>
-                                        <td>${waktuMulai} - ${waktuSelesai}</td>
-                                    </tr>
-                                `;
-                            });
-                        }       
-                    }
-                } else {
-                    throw new Error(result.message || 'Gagal memuat jadwal terkait');
-                }
-            } catch (error) {
-                console.error('Error fetching related schedules:', error);
-                const relatedSchedulesList = document.getElementById('relatedSchedulesList');
-                if (relatedSchedulesList) {
-                    relatedSchedulesList.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="text-center text-danger">
-                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                Gagal memuat data jadwal terkait
-                            </td>
-                        </tr>
-                    `;
-                }
-            }
-            
-            // Tampilkan modal
-            if (bsModalBatal) bsModalBatal.show();
-        });
-    });
-
-    // Event listener untuk checkbox "Pilih Semua"
-    const selectAllCheckbox = document.getElementById('selectAllRelatedSchedules');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            console.log('Select all checkbox changed, checked:', this.checked);
-            const isChecked = this.checked;
-            document.querySelectorAll('.related-schedule-check').forEach(checkbox => {
-                checkbox.checked = isChecked;
-                console.log('Setting checkbox', checkbox.id, 'to', isChecked);
-            });
-        });
-    } else {
-        console.warn('Select all checkbox not found in the DOM');
-    }
-
     // Handle konfirmasi pembatalan
     document.getElementById('confirmBatal')?.addEventListener('click', async function() {
         const alasanInput = document.getElementById('alasanPembatalan');
-        if (!alasanInput || !currentBatalId) return;
+        if (!alasanInput || !currentBatalId) {
+            console.error('Data tidak lengkap:', { alasanInput, currentBatalId });
+            return;
+        }
 
         const alasan = alasanInput.value.trim();
         if (!alasan) {
@@ -2226,12 +2470,14 @@
                 related_schedules: selectedSchedules
             });
 
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
             // Kirim request
             const response = await fetch(`/persetujuan/batal/${currentBatalId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'X-CSRF-TOKEN': token,
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
@@ -2248,11 +2494,6 @@
             try {
                 result = JSON.parse(responseText);
                 console.log('Parsed API Response:', result);
-                console.log('Related Schedules:', result.schedules);
-                if (result.success && result.schedules && result.schedules.length > 0) {
-            console.log('Jumlah jadwal terkait:', result.schedules.length);
-            console.log('Detail jadwal pertama:', result.schedules[0]);
-        }
             } catch (parseError) {
                 console.error('Error parsing cancellation response:', parseError);
                 throw new Error('Invalid JSON response from server');
@@ -2272,16 +2513,39 @@
                     window.location.reload();
                 });
             } else {
+                // TAMBAHAN: Cek pesan error apakah tentang jadwal yang sudah lewat
+                if (result.message && result.message.toLowerCase().includes('lewat waktu')) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Tidak Dapat Dibatalkan',
+                        text: 'Jadwal bimbingan tidak dapat dibatalkan karena sudah lewat waktu',
+                        confirmButtonColor: '#dc3545'
+                    });
+                    return;
+                }
+                
                 throw new Error(result.message || 'Terjadi kesalahan');
             }
         } catch (error) {
             console.error('Error during cancellation:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Tidak dapat memproses permintaan',
-                text: error.message || 'Silakan coba beberapa saat lagi',
-                confirmButtonColor: '#1a73e8'
-            });
+            
+            // TAMBAHAN: Cek pesan error lagi
+            if (error.message && error.message.toLowerCase().includes('lewat waktu')) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Tidak Dapat Dibatalkan',
+                    text: 'Jadwal bimbingan tidak dapat dibatalkan karena sudah lewat waktu',
+                    confirmButtonColor: '#dc3545'
+                });
+            } else {
+                // Pesan error umum untuk masalah lainnya
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Tidak dapat memproses permintaan',
+                    text: error.message || 'Silakan coba beberapa saat lagi',
+                    confirmButtonColor: '#dc3545'
+                });
+            }
         }
     });
 
@@ -2317,442 +2581,657 @@
             }
         });
     });
-    // SOLUSI KHUSUS UNTUK MASALAH PENCARIAN - FUNGSI YANG DIPERBAIKI
-    
-    // Fungsi pencarian untuk tabel Daftar Jadwal Dosen
-    const searchDaftarDosenInput = document.getElementById('searchDaftarDosen');
-    const clearDaftarDosenBtn = document.getElementById('clearSearchDaftarDosen');
-    const daftarDosenTable = document.querySelector('.daftar-dosen-section table');
-    
-    if (searchDaftarDosenInput && daftarDosenTable) {
-        // Set awal tombol clear
-        if (clearDaftarDosenBtn) {
-            clearDaftarDosenBtn.style.display = 'none';
-        }
-        
-        // Tambahkan event untuk input pencarian
-        searchDaftarDosenInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            
-            // Tampilkan/sembunyikan tombol clear
-            if (clearDaftarDosenBtn) {
-                clearDaftarDosenBtn.style.display = searchTerm ? 'flex' : 'none';
-            }
-            
-            // Sembunyikan icon search jika ada input
-            const searchIcon = this.nextElementSibling;
-            if (searchIcon && searchIcon.classList.contains('search-icon')) {
-                searchIcon.style.opacity = searchTerm ? '0' : '1';
-                searchIcon.style.visibility = searchTerm ? 'hidden' : 'visible';
-            }
-            
-            // Filter tabel
-            const rows = daftarDosenTable.querySelectorAll('tbody tr');
-            let matchFound = false;
-            
-            // Hapus pesan tidak ditemukan jika ada
-            const existingNoResults = daftarDosenTable.querySelector('.no-results-row');
-            if (existingNoResults) {
-                existingNoResults.remove();
-            }
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let rowMatch = false;
-                
-                cells.forEach(cell => {
-                    const cellText = cell.textContent;
-                    const lowerCellText = cellText.toLowerCase();
-                    
-                    if (lowerCellText.includes(searchTerm)) {
-                        rowMatch = true;
-                        
-                        // Hanya tambahkan highlighting jika kita memiliki kata pencarian
-                        if (searchTerm) {
-                            // Simpan teks asli sebelum kita memodifikasinya
-                            if (!cell.hasAttribute('data-original')) {
-                                cell.setAttribute('data-original', cellText);
-                            }
-                            
-                            // Temukan semua instance kata pencarian (tidak peka huruf besar/kecil)
-                            const regex = new RegExp(searchTerm, 'gi');
-                            const highlightedText = cell.getAttribute('data-original').replace(regex, match => 
-                                `<span class="highlight">${match}</span>`
-                            );
-                            
-                            // Perbarui HTML
-                            cell.innerHTML = highlightedText;
-                        } else {
-                            // Jika pencarian dihapus, kembalikan teks asli
-                            if (cell.hasAttribute('data-original')) {
-                                cell.textContent = cell.getAttribute('data-original');
-                                cell.removeAttribute('data-original');
-                            }
-                        }
-                    }
-                });
 
-                // Juga tambahkan kode untuk mengembalikan teks asli ketika pencarian dihapus
-                if (!searchTerm) {
-                    rows.forEach(row => {
-                        const cells = row.querySelectorAll('td');
-                        cells.forEach(cell => {
-                            if (cell.hasAttribute('data-original')) {
-                                cell.textContent = cell.getAttribute('data-original');
-                                cell.removeAttribute('data-original');
-                            }
-                        });
-                    });
-                }
-            });
-            
-            // Tampilkan pesan jika tidak ada hasil
-            if (!matchFound && searchTerm) {
-                const tbody = daftarDosenTable.querySelector('tbody');
-                if (tbody) {
-                    const colCount = daftarDosenTable.querySelectorAll('thead th').length;
-                    const noResultsRow = document.createElement('tr');
-                    noResultsRow.className = 'no-results-row';
-                    noResultsRow.innerHTML = `
-                        <td colspan="${colCount}" class="text-center py-3">
-                            <i class="bi bi-search me-2"></i> Tidak ada data yang cocok dengan pencarian "${searchTerm}"
-                        </td>
-                    `;
-                    tbody.appendChild(noResultsRow);
-                }
-            }
-        });
+    // Implementasi fungsi pencarian
+    const searchInputs = document.querySelectorAll('.search-box');
+    searchInputs.forEach(searchInput => {
+        const clearButton = searchInput.nextElementSibling.nextElementSibling;
+        const table = searchInput.closest('.card-body').querySelector('table');
         
-        // Event untuk tombol clear
-        if (clearDaftarDosenBtn) {
-            clearDaftarDosenBtn.addEventListener('click', function() {
-                searchDaftarDosenInput.value = '';
-                searchDaftarDosenInput.dispatchEvent(new Event('input'));
-                searchDaftarDosenInput.focus();
-            });
-        }
-    }
-    
-    // Fungsi pencarian untuk tabel Riwayat Jadwal Dosen
-    const searchRiwayatDosenInput = document.getElementById('searchRiwayatDosen');
-    const clearRiwayatDosenBtn = document.getElementById('clearSearchRiwayatDosen');
-    const riwayatDosenTable = document.querySelector('.riwayat-dosen-section table');
-    
-    if (searchRiwayatDosenInput && riwayatDosenTable) {
-        // Set awal tombol clear
-        if (clearRiwayatDosenBtn) {
-            clearRiwayatDosenBtn.style.display = 'none';
-        }
-        
-        // Tambahkan event untuk input pencarian
-        searchRiwayatDosenInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            
-            // Tampilkan/sembunyikan tombol clear
-            if (clearRiwayatDosenBtn) {
-                clearRiwayatDosenBtn.style.display = searchTerm ? 'flex' : 'none';
-            }
-            
-            // Sembunyikan icon search jika ada input
-            const searchIcon = this.nextElementSibling;
-            if (searchIcon && searchIcon.classList.contains('search-icon')) {
-                searchIcon.style.opacity = searchTerm ? '0' : '1';
-                searchIcon.style.visibility = searchTerm ? 'hidden' : 'visible';
-            }
-            
-            // Filter tabel
-            const rows = riwayatDosenTable.querySelectorAll('tbody tr');
-            let matchFound = false;
-            
-            // Hapus pesan tidak ditemukan jika ada
-            const existingNoResults = riwayatDosenTable.querySelector('.no-results-row');
-            if (existingNoResults) {
-                existingNoResults.remove();
-            }
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let rowMatch = false;
-                
-                cells.forEach(cell => {
-                const cellText = cell.textContent;
-                const lowerCellText = cellText.toLowerCase();
-                
-                if (lowerCellText.includes(searchTerm)) {
-                    rowMatch = true;
-                    
-                    // Hanya tambahkan highlighting jika kita memiliki kata pencarian
-                    if (searchTerm) {
-                        // Simpan teks asli sebelum kita memodifikasinya
-                        if (!cell.hasAttribute('data-original')) {
-                            cell.setAttribute('data-original', cellText);
-                        }
-                        
-                        // Temukan semua instance kata pencarian (tidak peka huruf besar/kecil)
-                        const regex = new RegExp(searchTerm, 'gi');
-                        const highlightedText = cell.getAttribute('data-original').replace(regex, match => 
-                            `<span class="highlight">${match}</span>`
-                        );
-                        
-                        // Perbarui HTML
-                        cell.innerHTML = highlightedText;
-                    } else {
-                        // Jika pencarian dihapus, kembalikan teks asli
-                        if (cell.hasAttribute('data-original')) {
-                            cell.textContent = cell.getAttribute('data-original');
-                            cell.removeAttribute('data-original');
-                        }
-                    }
-                }
-            });
-
-                // Juga tambahkan kode untuk mengembalikan teks asli ketika pencarian dihapus
-                if (!searchTerm) {
-                    rows.forEach(row => {
-                        const cells = row.querySelectorAll('td');
-                        cells.forEach(cell => {
-                            if (cell.hasAttribute('data-original')) {
-                                cell.textContent = cell.getAttribute('data-original');
-                                cell.removeAttribute('data-original');
-                            }
-                        });
-                    });
-                }
-            });
-            
-            // Tampilkan pesan jika tidak ada hasil
-            if (!matchFound && searchTerm) {
-                const tbody = riwayatDosenTable.querySelector('tbody');
-                if (tbody) {
-                    const colCount = riwayatDosenTable.querySelectorAll('thead th').length;
-                    const noResultsRow = document.createElement('tr');
-                    noResultsRow.className = 'no-results-row';
-                    noResultsRow.innerHTML = `
-                        <td colspan="${colCount}" class="text-center py-3">
-                            <i class="bi bi-search me-2"></i> Tidak ada data yang cocok dengan pencarian "${searchTerm}"
-                        </td>
-                    `;
-                    tbody.appendChild(noResultsRow);
-                }
-            }
-        });
-        
-        // Event untuk tombol clear
-        if (clearRiwayatDosenBtn) {
-            clearRiwayatDosenBtn.addEventListener('click', function() {
-                searchRiwayatDosenInput.value = '';
-                searchRiwayatDosenInput.dispatchEvent(new Event('input'));
-                searchRiwayatDosenInput.focus();
-            });
-        }
-    }
-    
-    // Inisialisasi fungsi pencarian untuk tab-tab lainnya
-    const searchUsulanInput = document.querySelector('#usulan .search-box');
-    const clearUsulanBtn = document.querySelector('#usulan .search-clear');
-    const usulanTable = document.querySelector('#usulan table');
-    
-    if (searchUsulanInput && usulanTable) {
-        initializeSearchForTable(searchUsulanInput, clearUsulanBtn, usulanTable);
-    }
-    
-    const searchJadwalInput = document.querySelector('#jadwal .search-box');
-    const clearJadwalBtn = document.querySelector('#jadwal .search-clear');
-    const jadwalTable = document.querySelector('#jadwal table');
-    
-    if (searchJadwalInput && jadwalTable) {
-        initializeSearchForTable(searchJadwalInput, clearJadwalBtn, jadwalTable);
-    }
-    
-    const searchRiwayatInput = document.querySelector('#riwayat .search-box');
-    const clearRiwayatBtn = document.querySelector('#riwayat .search-clear');
-    const riwayatTable = document.querySelector('#riwayat table');
-    
-    if (searchRiwayatInput && riwayatTable) {
-        initializeSearchForTable(searchRiwayatInput, clearRiwayatBtn, riwayatTable);
-    }
-    
-    // Fungsi umum untuk menginisialisasi pencarian pada tabel
-    function initializeSearchForTable(searchInput, clearButton, table) {
-        // Set awal tombol clear
-        if (clearButton) {
-            clearButton.style.display = 'none';
-        }
-        
-        // Tambahkan event untuk input pencarian
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            
-            // Tampilkan/sembunyikan tombol clear
-            if (clearButton) {
+        if (clearButton && table) {
+            // Tampilkan tombol clear saat input tidak kosong
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim();
                 clearButton.style.display = searchTerm ? 'flex' : 'none';
-            }
-            
-            // Sembunyikan icon search jika ada input
-            const searchIcon = this.nextElementSibling;
-            if (searchIcon && searchIcon.classList.contains('search-icon')) {
-                searchIcon.style.opacity = searchTerm ? '0' : '1';
-                searchIcon.style.visibility = searchTerm ? 'hidden' : 'visible';
-            }
-            
-            // Filter tabel
-            const rows = table.querySelectorAll('tbody tr');
-            let matchFound = false;
-            
-            // Hapus pesan tidak ditemukan jika ada
-            const existingNoResults = table.querySelector('.no-results-row');
-            if (existingNoResults) {
-                existingNoResults.remove();
-            }
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                let rowMatch = false;
                 
-                cells.forEach(cell => {
-                    const cellText = cell.textContent;
-                    const lowerCellText = cellText.toLowerCase();
+                // Filter tabel
+                const rows = table.querySelectorAll('tbody tr');
+                let foundMatch = false;
+                
+                rows.forEach(row => {
+                    let rowMatch = false;
+                    const cells = row.querySelectorAll('td');
                     
-                    // Jika sel berisi istilah pencarian sebagai kata (bukan sebagai bagian kata)
-                    // Gunakan regex whole word match
-                    const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    const regex = new RegExp(`(\\b${escapedSearchTerm}|${escapedSearchTerm}\\b)`, 'i');
-                    
-                    if (regex.test(lowerCellText)) {
-                        rowMatch = true;
-                        
-                        // Hanya tambahkan highlighting jika kita memiliki kata pencarian
-                        if (searchTerm) {
-                            // Simpan teks asli sebelum kita memodifikasinya
-                            if (!cell.hasAttribute('data-original')) {
-                                cell.setAttribute('data-original', cellText);
-                            }
-                            
-                            // Highlight hanya kata yang cocok, bukan bagian dari kata
-                            const highlightRegex = new RegExp(`(\\b${escapedSearchTerm}|${escapedSearchTerm}\\b)`, 'gi');
-                            const highlightedText = cell.getAttribute('data-original').replace(highlightRegex, 
-                                '<span class="highlight">$1</span>'
-                            );
-                            
-                            // Perbarui HTML
-                            cell.innerHTML = highlightedText;
+                    cells.forEach(cell => {
+                        if (cell.textContent.toLowerCase().includes(searchTerm.toLowerCase())) {
+                            rowMatch = true;
                         }
-                    } else if (cell.hasAttribute('data-original') && searchTerm) {
-                        // Kembalikan ke teks asli jika sel ini tidak lagi cocok
-                        cell.textContent = cell.getAttribute('data-original');
-                        cell.removeAttribute('data-original');
-                    }
+                    });
+                    
+                    row.style.display = rowMatch || !searchTerm ? '' : 'none';
+                    if (rowMatch) foundMatch = true;
                 });
                 
-                // Tampilkan/sembunyikan baris berdasarkan kecocokan
-                if (rowMatch || !searchTerm) {
-                    row.style.display = '';
-                    matchFound = true;
-                } else {
-                    row.style.display = 'none';
+                // Tampilkan pesan jika tidak ada hasil
+                const noResultsRow = table.querySelector('.no-results-row');
+                if (!foundMatch && searchTerm) {
+                    if (!noResultsRow) {
+                        const tbody = table.querySelector('tbody');
+                        const colCount = table.querySelectorAll('thead th').length;
+                        const tr = document.createElement('tr');
+                        tr.className = 'no-results-row';
+                        tr.innerHTML = `<td colspan="${colCount}" class="text-center py-3">
+                            <i class="bi bi-search me-2"></i> Tidak ada data yang cocok dengan pencarian "${searchTerm}"
+                        </td>`;
+                        tbody.appendChild(tr);
+                    }
+                } else if (noResultsRow) {
+                    noResultsRow.remove();
                 }
             });
             
-            // Jika pencarian dihapus, kembalikan semua sel ke teks asli
-            if (!searchTerm) {
-                rows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    cells.forEach(cell => {
-                        if (cell.hasAttribute('data-original')) {
-                            cell.textContent = cell.getAttribute('data-original');
-                            cell.removeAttribute('data-original');
-                        }
-                    });
-                });
-            }
-            
-            // Tampilkan pesan jika tidak ada hasil
-            if (!matchFound && searchTerm) {
-                const tbody = table.querySelector('tbody');
-                if (tbody) {
-                    const colCount = table.querySelectorAll('thead th').length;
-                    const noResultsRow = document.createElement('tr');
-                    noResultsRow.className = 'no-results-row';
-                    noResultsRow.innerHTML = `
-                        <td colspan="${colCount}" class="text-center py-3">
-                            <i class="bi bi-search me-2"></i> Tidak ada data yang cocok dengan pencarian "${searchTerm}"
-                        </td>
-                    `;
-                    tbody.appendChild(noResultsRow);
-                }
-            }
-        });
-        
-        // Event untuk tombol clear
-        if (clearButton) {
+            // Clear button handler
             clearButton.addEventListener('click', function() {
                 searchInput.value = '';
-                
-                // Kembalikan semua konten sel asli
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    cells.forEach(cell => {
-                        if (cell.hasAttribute('data-original')) {
-                            cell.textContent = cell.getAttribute('data-original');
-                            cell.removeAttribute('data-original');
-                        }
-                    });
-                    row.style.display = ''; // Tampilkan semua baris
-                });
-                
-                // Hapus pesan "tidak ada hasil" jika ada
-                const existingNoResults = table.querySelector('.no-results-row');
-                if (existingNoResults) {
-                    existingNoResults.remove();
-                }
-                
-                // Sembunyikan tombol clear dan kembalikan ikon pencarian
-                this.style.display = 'none';
-                const searchIcon = searchInput.nextElementSibling;
-                if (searchIcon && searchIcon.classList.contains('search-icon')) {
-                    searchIcon.style.opacity = '1';
-                    searchIcon.style.visibility = 'visible';
-                }
-                
+                searchInput.dispatchEvent(new Event('input'));
                 searchInput.focus();
             });
         }
+    });
+
+// Google Calendar connect button handler
+$('.google-connect-btn').click(function(e) {
+    e.preventDefault();
+    var url = $(this).attr('href');
+    
+    // Pastikan kita memberi tahu halaman asal dengan parameter yang benar
+    url += (url.indexOf('?') !== -1 ? '&' : '?') + 'origin_url=' + encodeURIComponent(window.location.href);
+    
+    // Tambahkan parameter tab=jadwal agar sesuai dengan kondisi di controller
+    if (window.location.href.indexOf('tab=jadwal') === -1) {
+        url += '&tab=jadwal';
     }
-    $(document).ready(function() {
-    $('.google-connect-btn').click(function(e) {
-        e.preventDefault();
-        var url = $(this).attr('href');
+    
+    // Alihkan ke halaman autentikasi Google secara langsung
+    window.location.href = url;
+});
+    /**
+ * Fungsi untuk menampilkan notifikasi undangan berhasil dikirim
+ */
+function showInvitationNotification() {
+    // Periksa apakah element notifikasi sudah ada di halaman
+    let notif = document.getElementById('invitation-notification');
+    
+    // Jika belum ada, buat element baru
+    if (!notif) {
+        notif = document.createElement('div');
+        notif.id = 'invitation-notification';
+        notif.className = 'notification-popup';
+        notif.innerHTML = `
+            <div class="notification-header">
+                <span>Undangan Bimbingan</span>
+                <button type="button" class="close-btn" onclick="this.parentElement.parentElement.remove()">&times;</button>
+            </div>
+            <div class="notification-body">
+                <p>Undangan bimbingan berhasil dikirim ke Google Calendar mahasiswa</p>
+            </div>
+        `;
         
-        // Tambahkan parameter popup=true
-        url += (url.indexOf('?') !== -1 ? '&' : '?') + 'popup=true';
+        // Style untuk notifikasi
+        notif.style.position = 'fixed';
+        notif.style.bottom = '20px';
+        notif.style.right = '20px';
+        notif.style.width = '300px';
+        notif.style.backgroundColor = '#fff';
+        notif.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+        notif.style.borderRadius = '8px';
+        notif.style.borderLeft = '4px solid #28a745';
+        notif.style.overflow = 'hidden';
+        notif.style.zIndex = '9999';
+        notif.style.animation = 'slideInUp 0.3s ease-out';
         
-        var popup = window.open(url, 'Google Connect', 'width=600,height=600');
+        // Style untuk header
+        const header = notif.querySelector('.notification-header');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+        header.style.padding = '10px 15px';
+        header.style.backgroundColor = '#f8f9fa';
+        header.style.borderBottom = '1px solid #dee2e6';
         
-        // Tangkap pesan dari popup
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.success) {
-                console.log('Berhasil terhubung:', event.data.message);
+        // Style untuk tombol close
+        const closeBtn = notif.querySelector('.close-btn');
+        closeBtn.style.border = 'none';
+        closeBtn.style.background = 'none';
+        closeBtn.style.fontSize = '20px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.color = '#6c757d';
+        
+        // Style untuk body
+        const body = notif.querySelector('.notification-body');
+        body.style.padding = '15px';
+        
+        // Tambahkan ke dokumen
+        document.body.appendChild(notif);
+        
+        // Animasi slide-in
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInUp {
+                from { transform: translateY(100%); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    } else {
+        // Jika sudah ada, tampilkan kembali
+        notif.style.display = 'block';
+        notif.style.animation = 'slideInUp 0.3s ease-out';
+    }
+    
+    // Otomatis hilangkan notifikasi setelah 5 detik
+    setTimeout(() => {
+        if (notif && notif.parentNode) {
+            notif.style.animation = 'slideOutDown 0.3s ease-in forwards';
+            setTimeout(() => {
+                if (notif && notif.parentNode) {
+                    notif.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+/**
+ * Menampilkan tombol batalkan pada jadwal
+ */
+function setupEventButtons() {
+    // Ambil semua event di kalender
+    const calendarEvents = document.querySelectorAll('.fc-event');
+    
+    calendarEvents.forEach(event => {
+        // Ambil data event dari atribut data
+        const eventData = event.fcSeg && event.fcSeg.eventRange && event.fcSeg.eventRange.def;
+        if (!eventData) return;
+        
+        const extendedProps = eventData.extendedProps || {};
+        
+        // Cek apakah event bisa dibatalkan
+        if (extendedProps.canBeCancelled) {
+            // Tambahkan tombol batalkan jika belum ada
+            if (!event.querySelector('.cancel-button')) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'cancel-button';
+                cancelBtn.innerHTML = '&times;';
+                cancelBtn.title = 'Batalkan jadwal bimbingan';
                 
-                // Tampilkan notifikasi sukses dengan SweetAlert
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: event.data.message,
-                    timer: 1500,
-                    showConfirmButton: false
-                }).then(() => {
-                    // Refresh halaman saat ini
-                    window.location.reload();
+                // Styling tombol
+                cancelBtn.style.position = 'absolute';
+                cancelBtn.style.top = '2px';
+                cancelBtn.style.right = '2px';
+                cancelBtn.style.background = 'rgba(255,255,255,0.7)';
+                cancelBtn.style.border = 'none';
+                cancelBtn.style.borderRadius = '50%';
+                cancelBtn.style.width = '18px';
+                cancelBtn.style.height = '18px';
+                cancelBtn.style.lineHeight = '16px';
+                cancelBtn.style.fontSize = '14px';
+                cancelBtn.style.color = '#dc3545';
+                cancelBtn.style.cursor = 'pointer';
+                cancelBtn.style.zIndex = '10';
+                cancelBtn.style.display = 'none'; // Sembunyikan tombol secara default
+                
+                // Tampilkan tombol saat hover
+                event.addEventListener('mouseenter', () => {
+                    cancelBtn.style.display = 'block';
                 });
+                
+                event.addEventListener('mouseleave', () => {
+                    cancelBtn.style.display = 'none';
+                });
+                
+                // Tambahkan event listener untuk tombol batalkan
+                cancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Hindari event click pada event calendar
+                    
+                    // Dapatkan ID jadwal
+                    const jadwalId = extendedProps.id || eventData.publicId;
+                    
+                    // Tampilkan modal konfirmasi
+                    showCancelConfirmation(jadwalId);
+                });
+                
+                // Tambahkan ke event
+                event.appendChild(cancelBtn);
+                
+                // Pastikan event memiliki position relative agar tombol batalkan bisa diposisikan
+                event.style.position = 'relative';
+            }
+        }
+        
+        // Tambahkan class untuk event yang dibatalkan
+        if (eventData.title && eventData.title.includes('[DIBATALKAN]')) {
+            event.classList.add('cancelled-event');
+            event.style.textDecoration = 'line-through';
+            event.style.opacity = '0.7';
+            event.style.backgroundColor = '#6c757d';
+            event.style.borderColor = '#6c757d';
+        }
+    });
+}
+
+/**
+ * Menampilkan modal konfirmasi pembatalan jadwal
+ */
+function showCancelConfirmation(jadwalId) {
+    // Periksa apakah SweetAlert2 tersedia
+    if (typeof Swal === 'undefined') {
+        // Jika tidak ada SweetAlert2, gunakan confirm standard
+        if (confirm('Anda yakin ingin membatalkan jadwal bimbingan ini?')) {
+            // Minta alasan pembatalan
+            const alasan = prompt('Masukkan alasan pembatalan:');
+            if (alasan) {
+                submitCancelRequest(jadwalId, alasan);
+            }
+        }
+        return;
+    }
+    
+    // Gunakan SweetAlert2 untuk modal yang lebih baik
+    Swal.fire({
+        title: 'Batalkan Jadwal Bimbingan?',
+        text: 'Anda akan membatalkan jadwal bimbingan ini dan mengirim notifikasi ke mahasiswa.',
+        icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Alasan Pembatalan',
+        inputPlaceholder: 'Masukkan alasan pembatalan...',
+        inputAttributes: {
+            'required': 'true'
+        },
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Batalkan',
+        cancelButtonText: 'Batal',
+        showLoaderOnConfirm: true,
+        preConfirm: (alasan) => {
+            if (!alasan.trim()) {
+                Swal.showValidationMessage('Alasan pembatalan harus diisi!');
+                return false;
+            }
+            
+            // Cek jadwal terkait yang bisa dibatalkan juga
+            return fetch(`/dosen/get-related-schedules/${jadwalId}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Gagal mendapatkan jadwal terkait');
+                return response.json();
+            })
+            .then(data => {
+                // Simpan alasan dan jadwal terkait
+                return {
+                    alasan: alasan,
+                    relatedSchedules: data.success && data.schedules && data.schedules.length > 0 ? data.schedules : []
+                };
+            })
+            .catch(error => {
+                Swal.showValidationMessage(`Error: ${error.message}`);
+                return { alasan: alasan, relatedSchedules: [] };
+            });
+        },
+        allowOutsideClick: () => !Swal.isLoading()
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const { alasan, relatedSchedules } = result.value;
+            
+            // Jika ada jadwal terkait, tanyakan apakah ingin dibatalkan juga
+            if (relatedSchedules && relatedSchedules.length > 0) {
+                showRelatedSchedulesConfirmation(jadwalId, alasan, relatedSchedules);
+            } else {
+                // Jika tidak ada jadwal terkait, langsung batalkan jadwal utama
+                submitCancelRequest(jadwalId, alasan);
+            }
+        }
+    });
+}
+
+/**
+ * Menampilkan konfirmasi jadwal terkait
+ */
+function showRelatedSchedulesConfirmation(jadwalId, alasan, relatedSchedules) {
+    // Buat HTML untuk daftar jadwal terkait
+    let relatedHtml = '<div class="related-schedules mt-3">' +
+                       '<p class="font-weight-bold mb-2">Jadwal terkait yang juga bisa dibatalkan:</p>' +
+                       '<div class="related-items">';
+    
+    relatedSchedules.forEach(schedule => {
+        relatedHtml += `
+            <div class="form-check mb-2">
+                <input class="form-check-input related-schedule-item" type="checkbox" value="${schedule.id}" id="schedule-${schedule.id}">
+                <label class="form-check-label" for="schedule-${schedule.id}">
+                    ${schedule.mahasiswa_nama} - ${schedule.jenis_bimbingan ? schedule.jenis_bimbingan.toUpperCase() : 'Umum'} 
+                    (${schedule.waktu_mulai} - ${schedule.waktu_selesai})
+                </label>
+            </div>
+        `;
+    });
+    
+    relatedHtml += '</div></div>';
+    
+    Swal.fire({
+        title: 'Batalkan Jadwal Terkait?',
+        html: `
+            <p>Ditemukan ${relatedSchedules.length} jadwal bimbingan terkait pada waktu yang sama.</p>
+            ${relatedHtml}
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Batalkan Semua yang Dipilih',
+        cancelButtonText: 'Hanya Batalkan Jadwal Utama',
+        showLoaderOnConfirm: true,
+        preConfirm: () => {
+            // Dapatkan ID jadwal terkait yang dipilih
+            const selectedSchedules = [];
+            document.querySelectorAll('.related-schedule-item:checked').forEach(checkbox => {
+                selectedSchedules.push(checkbox.value);
+            });
+            
+            return {
+                alasan: alasan,
+                selectedSchedules: selectedSchedules
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const { alasan, selectedSchedules } = result.value;
+            submitCancelRequest(jadwalId, alasan, selectedSchedules);
+        } else if (result.dismiss === Swal.DismissReason.cancel) {
+            // Batalkan hanya jadwal utama
+            submitCancelRequest(jadwalId, alasan);
+        }
+    });
+}
+
+/**
+ * Mengirim permintaan pembatalan ke server
+ */
+function submitCancelRequest(jadwalId, alasan, relatedSchedules = []) {
+    // CSRF token
+    const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    // Tampilkan loading
+    const loadingModal = typeof Swal !== 'undefined' ? 
+        Swal.fire({
+            title: 'Membatalkan jadwal...',
+            text: 'Mohon tunggu sebentar',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }) : null;
+    
+    // Kirim request pembatalan ke server
+    fetch(`/dosen/batalkan-persetujuan/${jadwalId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            alasan: alasan,
+            related_schedules: relatedSchedules
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (loadingModal) loadingModal.close();
+        
+        if (data.success) {
+            // Tampilkan pesan sukses
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: data.message,
+                    icon: 'success',
+                    confirmButtonColor: '#28a745'
+                }).then(() => {
+                    // Refresh halaman atau refresh calendar
+                    if (typeof calendar !== 'undefined' && calendar.refetchEvents) {
+                        calendar.refetchEvents();
+                    } else {
+                        location.reload();
+                    }
+                });
+            } else {
+                alert('Berhasil: ' + data.message);
+                // Refresh halaman
+                location.reload();
+            }
+        } else {
+            // Tampilkan pesan error
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Gagal!',
+                    text: data.message,
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            } else {
+                alert('Gagal: ' + data.message);
+            }
+        }
+    })
+    .catch(error => {
+        if (loadingModal) loadingModal.close();
+        
+        // Tampilkan pesan error
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Terjadi kesalahan saat memproses permintaan: ' + error.message,
+                icon: 'error',
+                confirmButtonColor: '#dc3545'
+            });
+        } else {
+            alert('Error: ' + error.message);
+        }
+    });
+}
+
+// Tambahkan listener untuk callback setelah berhasil menyetujui usulan
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listener untuk tombol setujui usulan
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('btn-terima-usulan')) {
+            const btnEl = e.target;
+            const usulanId = btnEl.dataset.id;
+            const lokasi = document.getElementById('lokasi-' + usulanId).value;
+            
+            // Simpan event handler asli
+            const originalHandler = btnEl.onclick;
+            
+            // Override event handler
+            btnEl.onclick = function(event) {
+                // Prevent default
+                event.preventDefault();
+                
+                // Kirim AJAX request
+                fetch('/dosen/terima/' + usulanId, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ lokasi: lokasi })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Tampilkan notifikasi undangan berhasil dikirim
+                        showInvitationNotification();
+                        
+                        // Refresh calendar jika ada
+                        if (typeof calendar !== 'undefined' && calendar.refetchEvents) {
+                            calendar.refetchEvents();
+                        }
+                        
+                        // Tampilkan pesan sukses
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Berhasil!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                // Refresh halaman
+                                location.reload();
+                            });
+                        } else {
+                            alert('Berhasil: ' + data.message);
+                            location.reload();
+                        }
+                    } else {
+                        // Tampilkan pesan error
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: data.message,
+                                icon: 'error',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        } else {
+                            alert('Gagal: ' + data.message);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat memproses permintaan');
+                });
+            };
+        }
+    });
+    
+    // Setup tombol batalkan pada event calendar jika ada
+    if (typeof calendar !== 'undefined') {
+        // Hook ke eventDidMount untuk menambahkan tombol batalkan
+        calendar.on('eventDidMount', function(info) {
+            const event = info.el;
+            const eventData = info.event;
+            const extendedProps = eventData.extendedProps || {};
+            
+            // Cek apakah event bisa dibatalkan
+            if (extendedProps.canBeCancelled) {
+                // Tambahkan tombol batalkan
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'cancel-button';
+                cancelBtn.innerHTML = '&times;';
+                cancelBtn.title = 'Batalkan jadwal bimbingan';
+                
+                // Styling tombol
+                cancelBtn.style.position = 'absolute';
+                cancelBtn.style.top = '2px';
+                cancelBtn.style.right = '2px';
+                cancelBtn.style.background = 'rgba(255,255,255,0.7)';
+                cancelBtn.style.border = 'none';
+                cancelBtn.style.borderRadius = '50%';
+                cancelBtn.style.width = '18px';
+                cancelBtn.style.height = '18px';
+                cancelBtn.style.lineHeight = '16px';
+                cancelBtn.style.fontSize = '14px';
+                cancelBtn.style.color = '#dc3545';
+                cancelBtn.style.cursor = 'pointer';
+                cancelBtn.style.zIndex = '10';
+                cancelBtn.style.display = 'none'; // Sembunyikan tombol secara default
+                
+                // Tampilkan tombol saat hover
+                event.addEventListener('mouseenter', () => {
+                    cancelBtn.style.display = 'block';
+                });
+                
+                event.addEventListener('mouseleave', () => {
+                    cancelBtn.style.display = 'none';
+                });
+                
+                // Tambahkan event listener untuk tombol batalkan
+                cancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Hindari event click pada event calendar
+                    
+                    // Dapatkan ID jadwal
+                    const jadwalId = extendedProps.id || eventData.id;
+                    
+                    // Tampilkan modal konfirmasi
+                    showCancelConfirmation(jadwalId);
+                });
+                
+                // Tambahkan ke event
+                event.appendChild(cancelBtn);
+                
+                // Pastikan event memiliki position relative agar tombol batalkan bisa diposisikan
+                event.style.position = 'relative';
+            }
+            
+            // Tambahkan class untuk event yang dibatalkan
+            if (eventData.title && eventData.title.includes('[DIBATALKAN]')) {
+                event.classList.add('cancelled-event');
+                event.style.textDecoration = 'line-through';
+                event.style.opacity = '0.7';
+                event.style.backgroundColor = '#6c757d';
+                event.style.borderColor = '#6c757d';
             }
         });
-        
-        if (!popup || popup.closed || typeof popup.closed == 'undefined') {
-            alert('Popup diblokir oleh browser. Silakan izinkan popup dan coba lagi.');
-        }
-        return false;
-    });
+    } else {
+        // Jika FullCalendar tidak tersedia, gunakan DOM standard
+        // Cek secara periodik untuk event calendar
+        setInterval(setupEventButtons, 1000);
+    }
+});
+
+// Tambahkan CSS untuk styling
+const style = document.createElement('style');
+style.textContent = `
+    /* Style untuk event yang dibatalkan */
+    .cancelled-event {
+        text-decoration: line-through !important;
+        opacity: 0.7 !important;
+        background-color: #6c757d !important;
+        border-color: #6c757d !important;
+    }
+    
+    /* Animasi untuk notifikasi */
+    @keyframes slideInUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    @keyframes slideOutDown {
+        from { transform: translateY(0); opacity: 1; }
+        to { transform: translateY(100%); opacity: 0; }
+    }
+    
+    /* Style untuk notifikasi */
+    .notification-popup {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 300px;
+        background-color: #fff;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+        overflow: hidden;
+        z-index: 9999;
+        animation: slideInUp 0.3s ease-out;
+    }
+`;
+document.head.appendChild(style);
 });
 </script>
 @endpush

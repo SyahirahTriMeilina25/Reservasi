@@ -63,7 +63,7 @@ Route::middleware(['auth:mahasiswa,dosen'])->group(function () {
         if ($request->page_token !== session('page_token')) {
             return redirect()->route('login');
         }
-        
+
         // Token cocok, authentikasi valid
         return redirect()->back();
     });
@@ -286,75 +286,103 @@ Route::get('/run-update-jadwal', function () {
 });
 
 // Di routes/web.php
+// Di routes/web.php
+// Di routes/web.php
 Route::get('/jadwal/{id}/status', function ($id) {
-    // PERBAIKAN: Pastikan id yang diterima adalah numerik
+    // Cari jadwal berdasarkan ID atau event_ID
     if (!is_numeric($id)) {
-        // Coba cari jadwal berdasarkan event_id jika id bukan numerik
         $jadwal = \App\Models\JadwalBimbingan::where('event_id', $id)->first();
-
-        if (!$jadwal) {
-            return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
-        }
-
-        // Gunakan ID numerik untuk update selanjutnya
+        if (!$jadwal) return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
         $id = $jadwal->id;
     } else {
         $jadwal = \App\Models\JadwalBimbingan::find($id);
-
-        if (!$jadwal) {
-            return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
-        }
+        if (!$jadwal) return response()->json(['error' => 'Jadwal tidak ditemukan'], 404);
     }
 
-    // Hitung jumlah pendaftar aktual dari database
+    // Hitung pendaftar (termasuk yang SELESAI)
     $pendaftarCount = DB::table('usulan_bimbingans')
         ->where('event_id', $jadwal->event_id)
-        ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+        ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI', 'SELESAI'])
         ->count();
 
-    // PERBAIKAN: Jika status penuh, pastikan jumlah pendaftar = kapasitas
-    if ($jadwal->status === \App\Models\JadwalBimbingan::STATUS_PENUH) {
-        $pendaftarCount = $jadwal->kapasitas;
+    // Hitung jumlah yang SELESAI
+    $selesaiCount = DB::table('usulan_bimbingans')
+        ->where('event_id', $jadwal->event_id)
+        ->where('status', 'SELESAI')
+        ->count();
+    
+    // Hitung jumlah yang AKTIF (tidak termasuk SELESAI)
+    $aktifCount = $pendaftarCount - $selesaiCount;
+
+    // PERBAIKAN: Ambil nilai-nilai ENUM yang valid
+    $validStatusQuery = DB::select("SHOW COLUMNS FROM jadwal_bimbingans WHERE Field = 'status'");
+    $validStatusValues = [];
+    
+    if (!empty($validStatusQuery) && isset($validStatusQuery[0]->Type)) {
+        preg_match('/enum\((.*)\)/', $validStatusQuery[0]->Type, $matches);
+        if (isset($matches[1])) {
+            $validStatusValues = array_map(function($val) {
+                return trim($val, "'\"");
+            }, explode(',', $matches[1]));
+        }
     }
-
-    // Update jumlah pendaftar di database menggunakan ID numerik
-    DB::table('jadwal_bimbingans')
-        ->where('id', $id)
-        ->update(['jumlah_pendaftar' => $pendaftarCount]);
-
-    // Tentukan status berdasarkan kondisi - GUNAKAN KONSTANTA
-    $status = $jadwal->status;
+    
+    // PERBAIKAN: Tentukan status berdasarkan nilai yang valid
+    $newStatus = '';
     if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
-        $status = \App\Models\JadwalBimbingan::STATUS_PENUH;
-        DB::table('jadwal_bimbingans')
-            ->where('id', $id)
-            ->update(['status' => $status]);
+        $newStatus = 'penuh'; // Ini kemungkinan valid
     } else if (\Carbon\Carbon::parse($jadwal->waktu_selesai)->isPast()) {
-        $status = \App\Models\JadwalBimbingan::STATUS_SELESAI;
-        DB::table('jadwal_bimbingans')
-            ->where('id', $id)
-            ->update(['status' => $status]);
-    } else if ($status !== \App\Models\JadwalBimbingan::STATUS_DIBATALKAN) {
-        $status = \App\Models\JadwalBimbingan::STATUS_TERSEDIA;
-        DB::table('jadwal_bimbingans')
-            ->where('id', $id)
-            ->update(['status' => $status]);
+        // PERBAIKAN: Gunakan status tersedia sebagai default, bukan selesai
+        $newStatus = 'tersedia';
+    } else {
+        $newStatus = 'tersedia'; // Default status
+    }
+    
+    // PERBAIKAN: Pastikan status valid sebelum mengupdate
+    if (!in_array($newStatus, $validStatusValues)) {
+        $newStatus = 'tersedia'; // Gunakan tersedia sebagai fallback aman
     }
 
-    // Status label yang lebih mudah dibaca - GUNAKAN ACCESSOR DARI MODEL
-    $statusLabel = match ($status) {
-        \App\Models\JadwalBimbingan::STATUS_TERSEDIA => 'Tersedia',
-        \App\Models\JadwalBimbingan::STATUS_PENUH => 'Penuh',
-        \App\Models\JadwalBimbingan::STATUS_SELESAI => 'Selesai',
-        \App\Models\JadwalBimbingan::STATUS_DIBATALKAN => 'Dibatalkan',
-        default => 'Unknown'
+    // Hitung sisa kapasitas
+    $sisaKapasitas = $jadwal->has_kuota_limit ? 
+        max(0, $jadwal->kapasitas - $pendaftarCount) : 0;
+
+    // PERBAIKAN: Jangan gunakan DB::raw, gunakan binding parameter biasa
+    try {
+        DB::table('jadwal_bimbingans')
+            ->where('id', $jadwal->id)
+            ->update([
+                'status' => $newStatus,
+                'jumlah_pendaftar' => $pendaftarCount,
+                'sisa_kapasitas' => $sisaKapasitas,
+                'updated_at' => now()
+            ]);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Error update status: '.$e->getMessage());
+        // Jangan throw error, biarkan tetap lanjut dengan status terakhir
+    }
+    
+    // Ambil jadwal yang sudah diupdate untuk respons
+    $updatedJadwal = \App\Models\JadwalBimbingan::find($jadwal->id);
+    
+    // TAMBAHAN: Berikan status label yang benar meskipun tidak ada di database
+    $statusLabel = match ($updatedJadwal->status) {
+        'tersedia' => 'Tersedia',
+        'tidak_tersedia' => 'Tidak Tersedia',
+        'penuh' => 'Penuh',
+        'dibatalkan' => 'Dibatalkan',
+        default => 'Tersedia'
     };
 
     return response()->json([
-        'status' => $status,
+        'status' => $updatedJadwal->status,
         'status_label' => $statusLabel,
         'jumlah_pendaftar' => $pendaftarCount,
-        'kapasitas' => $jadwal->kapasitas
+        'kapasitas' => $updatedJadwal->kapasitas,
+        'selesai_count' => $selesaiCount,
+        'aktif_count' => $aktifCount,
+        'has_kuota_limit' => $updatedJadwal->has_kuota_limit,
+        'sisa_kapasitas' => $updatedJadwal->sisa_kapasitas
     ]);
 });
 

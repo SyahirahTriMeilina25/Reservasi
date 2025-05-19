@@ -58,32 +58,40 @@ class JadwalBimbingan extends Model
 
     protected static function booted()
     {
-        // Menambahkan observer untuk update status saat model disimpan
         static::saving(function ($jadwal) {
-            // Update status berdasarkan pendaftar dan kapasitas
-            $now = Carbon::now();
-            $jadwalDate = Carbon::parse($jadwal->waktu_mulai)->startOfDay();
-            $currentDate = $now->startOfDay();
-            
-            if ($jadwal->has_kuota_limit && $jadwal->jumlah_pendaftar >= $jadwal->kapasitas) {
+            // Hitung pendaftar dengan query yang sama di semua tempat
+            $pendaftarCount = DB::table('usulan_bimbingans')
+                ->where('event_id', $jadwal->event_id)
+                ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI', 'SELESAI'])
+                ->count();
+
+            // Update jumlah pendaftar
+            $jadwal->jumlah_pendaftar = $pendaftarCount;
+
+            // Logic untuk update status
+            if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
                 $jadwal->status = self::STATUS_PENUH;
-            } 
-            // Jadwal dianggap selesai hanya jika tanggalnya sudah berlalu, bukan hanya berdasarkan jamnya
-            elseif ($jadwalDate->lt($currentDate)) {
+            }
+            // Jika waktu selesai sudah lewat, status menjadi SELESAI
+            elseif (Carbon::parse($jadwal->waktu_selesai)->isPast()) {
                 $jadwal->status = self::STATUS_SELESAI;
-            } 
-            // Khusus untuk jam yang sudah lewat pada hari ini, tetap 'tersedia'
+            }
+            // Jika jadwal belum dibatalkan, status menjadi TERSEDIA
             elseif ($jadwal->status !== self::STATUS_DIBATALKAN) {
                 $jadwal->status = self::STATUS_TERSEDIA;
             }
-            
+
+            // Update sisa_kapasitas
+            if ($jadwal->has_kuota_limit) {
+                $jadwal->sisa_kapasitas = max(0, $jadwal->kapasitas - $pendaftarCount);
+            }
+
             // Log untuk debugging
             Log::info('Updating JadwalBimbingan status:', [
                 'jadwal_id' => $jadwal->id,
                 'event_id' => $jadwal->event_id,
-                'waktu_mulai' => $jadwal->waktu_mulai,
-                'today' => $now->toDateTimeString(),
-                'is_past_date' => $jadwalDate->lt($currentDate),
+                'pendaftar_count' => $pendaftarCount,
+                'kapasitas' => $jadwal->kapasitas,
                 'new_status' => $jadwal->status
             ]);
         });
@@ -114,12 +122,14 @@ class JadwalBimbingan extends Model
     }
 
     // Update method updateStatus untuk logika status yang lebih komprehensif
+    // Ubah di method updateStatus()
     public function updateStatus(): void
     {
-        // Hitung jumlah pendaftar aktif dari usulan_bimbingans
+
+        // PERBAIKAN: Tambahkan 'SELESAI' ke dalam status yang dihitung
         $pendaftarCount = DB::table('usulan_bimbingans')
             ->where('event_id', $this->event_id)
-            ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+            ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI', 'SELESAI'])
             ->count();
 
         // Update atribut jumlah_pendaftar
@@ -129,7 +139,7 @@ class JadwalBimbingan extends Model
         if ($this->has_kuota_limit) {
             $this->sisa_kapasitas = max(0, $this->kapasitas - $pendaftarCount);
 
-            // Jika pendaftar sudah mencapai atau melebihi kapasitas, status menjadi PENUH
+            // Kondisi status tetap sama
             if ($pendaftarCount >= $this->kapasitas) {
                 $this->status = self::STATUS_PENUH;
             }
@@ -141,25 +151,7 @@ class JadwalBimbingan extends Model
             elseif ($this->status !== self::STATUS_DIBATALKAN) {
                 $this->status = self::STATUS_TERSEDIA;
             }
-        } else {
-            // Untuk jadwal tanpa kuota limit
-            if (Carbon::parse($this->waktu_selesai)->isPast()) {
-                $this->status = self::STATUS_SELESAI;
-            } elseif ($this->status !== self::STATUS_DIBATALKAN) {
-                $this->status = self::STATUS_TERSEDIA;
-            }
         }
-
-        // Debug log
-        Log::info('Updating jadwal status:', [
-            'id' => $this->id,
-            'event_id' => $this->event_id,
-            'old_status' => $this->getOriginal('status'),
-            'new_status' => $this->status,
-            'pendaftar_count' => $pendaftarCount,
-            'kapasitas' => $this->kapasitas,
-            'has_kuota_limit' => $this->has_kuota_limit
-        ]);
 
         $this->save();
     }

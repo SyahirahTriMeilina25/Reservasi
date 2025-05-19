@@ -388,11 +388,12 @@ class MasukkanJadwalController extends Controller
             DB::beginTransaction();
             try {
                 // Hapus atau tandai SOFT DELETE semua usulan yang ditolak/dibatalkan
-                // PILIHAN 1: Hapus usulan yang ditolak
                 DB::table('usulan_bimbingans')
                     ->where('event_id', $eventId)
                     ->whereIn('status', ['DITOLAK', 'DIBATALKAN'])
-                    ->delete();
+                    ->update([
+                        'event_id' => null
+                    ]);
 
                 // Hapus dari Google Calendar
                 try {
@@ -401,13 +402,13 @@ class MasukkanJadwalController extends Controller
                         'event_id' => $eventId
                     ]);
                 } catch (\Google_Service_Exception $e) {
-                    // Jika error 404 (event tidak ditemukan), lanjutkan
-                    if ($e->getCode() == 404) {
-                        Log::warning('Event tidak ditemukan di Google Calendar, melanjutkan penghapusan dari database:', [
+                    // Menangani error 404 dan 410
+                    if ($e->getCode() == 404 || $e->getCode() == 410) {
+                        Log::warning('Event tidak ditemukan atau sudah dihapus di Google Calendar, melanjutkan penghapusan dari database:', [
                             'event_id' => $eventId
                         ]);
                     } else {
-                        // Untuk error lain, throw exception
+                        // Untuk error lainnya, lemparkan exception
                         throw $e;
                     }
                 }
@@ -459,115 +460,144 @@ class MasukkanJadwalController extends Controller
     }
 
     // Tambahkan method untuk mendapatkan events dengan status dinamis
-    public function getEvents()
+    /**
+     * Mendapatkan events untuk tampilan kalender
+     */
+    public function getEvents(Request $request)
     {
         try {
-            // Ambil parameter start dan end dari request
-            $start = $request->query('start') ? Carbon::parse($request->query('start')) : Carbon::now()->startOfMonth();
-            // Tidak memberikan batas waktu akhir (null) untuk mengambil semua jadwal masa depan
-            $end = $request->query('end') ? Carbon::parse($request->query('end')) : null;
+            // Ambil parameter dari request
+            $startStr = $request->query('start');
+            $endStr = $request->query('end');
+            $filterDuplicates = $request->query('filter_duplicates', true);
 
-            // Update status semua jadwal terlebih dahulu
+            // Parse tanggal
+            $start = $startStr ? Carbon::parse($startStr) : Carbon::now()->startOfMonth();
+            $end = $endStr ? Carbon::parse($endStr) : Carbon::now()->endOfMonth();
+
+            // Ambil jadwal dari database lokal
             $jadwals = JadwalBimbingan::where('nip', auth()->user()->nip)
                 ->where(function ($query) use ($start, $end) {
-                    // Jika end tidak null, filter berdasarkan rentang
-                    if ($end) {
-                        $query->whereBetween('waktu_mulai', [$start, $end]);
-                    } else {
-                        // Jika end null, ambil semua jadwal dari start ke depan
-                        $query->where('waktu_mulai', '>=', $start)
-                            ->orWhere('status', '!=', JadwalBimbingan::STATUS_SELESAI);
-                    }
+                    $query->whereBetween('waktu_mulai', [$start, $end])
+                        ->orWhereBetween('waktu_selesai', [$start, $end]);
                 })
                 ->get();
 
-                foreach ($jadwals as $jadwal) {
-                    // Hitung jumlah pendaftar dari usulan yang aktif (perhatikan status yang dicek)
-                    $pendaftarCount = DB::table('usulan_bimbingans')
-                        ->where('event_id', $jadwal->event_id)
-                        ->whereIn('status', ['USULAN', 'DISETUJUI']) // Perbaiki status yang dihitung
-                        ->count();
-        
-                    // Update jumlah pendaftar
-                    if ($jadwal->jumlah_pendaftar != $pendaftarCount) {
-                        $jadwal->jumlah_pendaftar = $pendaftarCount;
-        
-                        // Update status berdasarkan jumlah pendaftar dan waktu
-                        if (Carbon::parse($jadwal->waktu_selesai)->isPast()) {
-                            $jadwal->status = JadwalBimbingan::STATUS_SELESAI;
-                        } elseif ($jadwal->status === JadwalBimbingan::STATUS_DIBATALKAN) {
-                            // Biarkan status dibatalkan tetap dibatalkan
-                        } elseif ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
-                            $jadwal->status = JadwalBimbingan::STATUS_PENUH;
-                        } else {
-                            $jadwal->status = JadwalBimbingan::STATUS_TERSEDIA;
-                        }
-        
-                        $jadwal->save();
+            // Format events untuk FullCalendar
+            $formattedEvents = [];
+
+            // Kumpulkan semua event_id yang akan ditampilkan
+            // ini untuk memastikan kita tidak menampilkan duplikat
+            $displayedEventIds = [];
+
+            foreach ($jadwals as $jadwal) {
+                // Hitung jumlah pendaftar
+                $pendaftarCount = DB::table('usulan_bimbingans')
+                    ->where(function ($query) use ($jadwal) {
+                        $query->where('event_id', $jadwal->event_id)
+                            ->orWhere('event_id', 'LIKE', $jadwal->event_id . ':%');
+                    })
+                    ->whereIn('status', ['USULAN', 'DISETUJUI', 'SELESAI'])
+                    ->count();
+
+                $selesaiCount = DB::table('usulan_bimbingans')
+                    ->where('event_id', $jadwal->event_id)
+                    ->where('status', 'SELESAI')
+                    ->count();
+
+                // Update status jadwal jika diperlukan
+                if ($jadwal->jumlah_pendaftar != $pendaftarCount) {
+                    $jadwal->jumlah_pendaftar = $pendaftarCount;
+
+                    // Update status berdasarkan kondisi
+                    if (Carbon::parse($jadwal->waktu_selesai)->isPast()) {
+                        $jadwal->status = 'selesai'; // Pastikan ini sesuai dengan enum di database
+                    } else if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
+                        $jadwal->status = 'penuh';
+                    } else {
+                        $jadwal->status = 'tersedia';
                     }
+
+                    $jadwal->save();
                 }
 
-            // Format events untuk calendar seperti sebelumnya
-            $formattedEvents = $jadwals->map(function ($jadwal) {
-                return [
-                    'id' => $jadwal->id,
-                    'title' => 'Bimbingan - ' . ($jadwal->jenis_bimbingan ? ucfirst($jadwal->jenis_bimbingan) : 'Umum'),
-                    'start' => $jadwal->waktu_mulai,
-                    'end' => $jadwal->waktu_selesai,
-                    'extendedProps' => [
-                        'has_kuota_limit' => $jadwal->has_kuota_limit,
-                        'kuota' => $jadwal->kapasitas,
-                        'jumlah_pendaftar' => $jadwal->jumlah_pendaftar,
-                        'jenis_bimbingan' => $jadwal->jenis_bimbingan,
-                        'status' => $jadwal->status,
-                        'description' => $this->generateDescription($jadwal)
-                    ]
-                ];
-            });
+                // Tambahkan ke daftar event yang akan ditampilkan
+                // pastikan event_id belum pernah ditambahkan sebelumnya
+                if (!in_array($jadwal->event_id, $displayedEventIds)) {
+                    $displayedEventIds[] = $jadwal->event_id;
 
-            // DEBUG: Tambahkan log untuk melihat events yang akan dikirim ke frontend
-            Log::info('Events yang dikirim ke frontend:', [
-                'count' => $formattedEvents->count(),
-                'events' => $formattedEvents->toArray()
-            ]);
+                    $formattedEvents[] = [
+                        'id' => $jadwal->event_id,
+                        'title' => 'Bimbingan - ' . ($jadwal->jenis_bimbingan ? ucfirst($jadwal->jenis_bimbingan) : 'Umum'),
+                        'start' => Carbon::parse($jadwal->waktu_mulai)->toIso8601String(),
+                        'end' => Carbon::parse($jadwal->waktu_selesai)->toIso8601String(),
+                        'extendedProps' => [
+                            'id' => $jadwal->id,
+                            'jenis_bimbingan' => $jadwal->jenis_bimbingan,
+                            'has_kuota_limit' => $jadwal->has_kuota_limit,
+                            'kuota' => $jadwal->kapasitas,
+                            'jumlah_pendaftar' => $pendaftarCount,
+                            'selesai_count' => $selesaiCount,
+                            'catatan' => $jadwal->catatan,
+                            'lokasi' => $jadwal->lokasi,
+                            'status' => $jadwal->status,
+                            'description' => $this->generateDescription($jadwal)
+                        ]
+                    ];
+                }
+            }
+
+            // Jika filterDuplicates tidak diaktifkan, coba ambil events dari Google Calendar
+            if (!$filterDuplicates && auth()->user()->hasGoogleCalendarConnected()) {
+                try {
+                    // Implementasi ini opsional, bisa dihapus jika tidak dibutuhkan
+                    // Di sini kita bisa memanggil GoogleCalendarController untuk mendapatkan
+                    // event langsung dari Google Calendar
+                } catch (\Exception $e) {
+                    Log::error('Failed to get Google Calendar events: ' . $e->getMessage());
+                }
+            }
 
             return response()->json($formattedEvents);
         } catch (\Exception $e) {
-            Log::error('Error fetching events: ' . $e->getMessage());
+            Log::error('Error fetching events: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
+    /**
+     * Menghasilkan deskripsi untuk event
+     */
     private function generateDescription($jadwal)
     {
-        // Hitung jumlah pendaftar aktif
-        $pendaftarCount = DB::table('usulan_bimbingans')
-            ->where('event_id', $jadwal->event_id)
-            ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
-            ->count();
+        $description = "";
 
-        // Update jumlah pendaftar dan status jadwal
-        if ($jadwal->jumlah_pendaftar != $pendaftarCount) {
-            $jadwal->jumlah_pendaftar = $pendaftarCount;
-            if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
-                $jadwal->status = JadwalBimbingan::STATUS_PENUH;
-            }
-            $jadwal->save();
-        }
+        // Tambahkan informasi jenis bimbingan
+        $description .= "Jenis Bimbingan: " . ($jadwal->jenis_bimbingan ? ucfirst($jadwal->jenis_bimbingan) : 'Umum') . "\n";
 
-        // Tentukan status yang benar untuk ditampilkan
-        $description = "Jenis Bimbingan: " . ($jadwal->jenis_bimbingan ? ucfirst($jadwal->jenis_bimbingan) : 'Umum') . "\n";
-
+        // Tambahkan informasi kuota
         if ($jadwal->has_kuota_limit) {
+            $pendaftarCount = DB::table('usulan_bimbingans')
+                ->where(function ($query) use ($jadwal) {
+                    $query->where('event_id', $jadwal->event_id)
+                        ->orWhere('event_id', 'LIKE', $jadwal->event_id . ':%');
+                })
+                ->whereIn('status', ['USULAN', 'DISETUJUI', 'SELESAI'])  // POIN PERBAIKAN: tambahkan 'SELESAI' di sini
+                ->count();
+
             $description .= "Kapasitas: {$pendaftarCount}/{$jadwal->kapasitas}\n";
         } else {
             $description .= "Kapasitas: Tidak Terbatas\n";
         }
 
+        // Tambahkan lokasi jika ada
         if ($jadwal->lokasi) {
             $description .= "Lokasi: {$jadwal->lokasi}\n";
         }
 
+        // Tambahkan catatan jika ada
         if ($jadwal->catatan) {
             $description .= "Catatan: {$jadwal->catatan}\n";
         }

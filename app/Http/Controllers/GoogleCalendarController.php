@@ -102,58 +102,58 @@ class GoogleCalendarController extends Controller
      * Handle callback dari Google OAuth
      */
     public function callback(Request $request)
-{
-    if (!$request->has('code')) {
-        return $this->redirectToIndex('Gagal terhubung ke Google Calendar.', 'error');
-    }
-
-    try {
-        $this->setCallbackUrl();
-        $state = json_decode(base64_decode($request->state), true);
-
-        if (!$state || !isset($state['guard']) || !isset($state['id'])) {
-            throw new \Exception('Invalid state parameter');
+    {
+        if (!$request->has('code')) {
+            return $this->redirectToIndex('Gagal terhubung ke Google Calendar.', 'error');
         }
 
-        $guard = $state['guard'];
-        $user = Auth::guard($guard)->user();
+        try {
+            $this->setCallbackUrl();
+            $state = json_decode(base64_decode($request->state), true);
 
-        if ($user->getAuthIdentifier() !== $state['id']) {
-            throw new \Exception('Invalid user');
-        }
+            if (!$state || !isset($state['guard']) || !isset($state['id'])) {
+                throw new \Exception('Invalid state parameter');
+            }
 
-        if ((time() - $state['timestamp']) > 3600) {
-            throw new \Exception('State expired');
-        }
+            $guard = $state['guard'];
+            $user = Auth::guard($guard)->user();
 
-        $token = $this->client->fetchAccessTokenWithAuthCode($request->code);
+            if ($user->getAuthIdentifier() !== $state['id']) {
+                throw new \Exception('Invalid user');
+            }
 
-        $this->client->setAccessToken($token);
-        $oauth2 = new Google_Service_Oauth2($this->client);
-        $userInfo = $oauth2->userinfo->get();
+            if ((time() - $state['timestamp']) > 3600) {
+                throw new \Exception('State expired');
+            }
 
-        if ($userInfo->email !== $user->email) {
-            throw new \Exception(sprintf(
-                'Email tidak sesuai. Gunakan akun Google dengan email yang terdaftar di sistem (%s)',
-                $user->email
-            ));
-        }
+            $token = $this->client->fetchAccessTokenWithAuthCode($request->code);
 
-        $user->updateGoogleToken(
-            $token['access_token'],
-            $token['refresh_token'] ?? null,
-            $token['expires_in']
-        );
+            $this->client->setAccessToken($token);
+            $oauth2 = new Google_Service_Oauth2($this->client);
+            $userInfo = $oauth2->userinfo->get();
 
-        // Dapatkan URL asal dari state
-        $originUrl = $state['origin_url'] ?? null;
-        
-        // Deteksi apakah ini dari popup berdasarkan parameter
-        $isPopup = $request->input('popup') === 'true';
-        
-        if ($isPopup) {
-            // Jika dari popup, kembalikan script JavaScript untuk menutup popup
-            $script = "
+            if ($userInfo->email !== $user->email) {
+                throw new \Exception(sprintf(
+                    'Email tidak sesuai. Gunakan akun Google dengan email yang terdaftar di sistem (%s)',
+                    $user->email
+                ));
+            }
+
+            $user->updateGoogleToken(
+                $token['access_token'],
+                $token['refresh_token'] ?? null,
+                $token['expires_in']
+            );
+
+            // Dapatkan URL asal dari state
+            $originUrl = $state['origin_url'] ?? null;
+
+            // Deteksi apakah ini dari popup berdasarkan parameter
+            $isPopup = $request->input('popup') === 'true';
+
+            if ($isPopup) {
+                // Jika dari popup, kembalikan script JavaScript untuk menutup popup
+                $script = "
             <html>
             <head>
                 <title>Menghubungkan...</title>
@@ -179,54 +179,53 @@ class GoogleCalendarController extends Controller
                 </script>
             </body>
             </html>";
-            
-            return response($script);
-        }
-        
-        // Jika bukan dari popup, gunakan redirect normal
-        if ($originUrl && strpos($originUrl, 'persetujuan') !== false && strpos($originUrl, 'tab=jadwal') !== false) {
-            // Jika berasal dari halaman persetujuan tab jadwal, kembalikan ke sana
-            return redirect($originUrl)
+
+                return response($script);
+            }
+
+            // Jika bukan dari popup, gunakan redirect normal
+            if ($originUrl && strpos($originUrl, 'persetujuan') !== false && strpos($originUrl, 'tab=jadwal') !== false) {
+                // Jika berasal dari halaman persetujuan tab jadwal, kembalikan ke sana
+                return redirect($originUrl)
+                    ->with('success', 'Google Calendar berhasil terhubung!')
+                    ->with('first_connection', true);
+            }
+
+            // Jika tidak ada URL sebelumnya, gunakan default berdasarkan guard
+            $routeName = match ($guard) {
+                'dosen' => 'dosen.persetujuan',
+                'mahasiswa' => 'mahasiswa.usulanbimbingan',
+                default => 'login'
+            };
+
+            $routeParams = ['tab' => 'jadwal'];
+            return redirect()->route($routeName, $routeParams)
                 ->with('success', 'Google Calendar berhasil terhubung!')
                 ->with('first_connection', true);
-        }
+        } catch (\Exception $e) {
+            $errorMessage = $this->getErrorMessage($e->getMessage());
 
-        // Jika tidak ada URL sebelumnya, gunakan default berdasarkan guard
-        $routeName = match ($guard) {
-            'dosen' => 'dosen.persetujuan',
-            'mahasiswa' => 'mahasiswa.usulanbimbingan',
-            default => 'login'
-        };
+            // Coba kembali ke halaman sebelumnya jika ada
+            $referer = $request->session()->get('_previous.url');
 
-        $routeParams = ['tab' => 'jadwal'];
-        return redirect()->route($routeName, $routeParams)
-            ->with('success', 'Google Calendar berhasil terhubung!')
-            ->with('first_connection', true);
-            
-    } catch (\Exception $e) {
-        $errorMessage = $this->getErrorMessage($e->getMessage());
+            if ($referer) {
+                return redirect($referer)
+                    ->with('error', $errorMessage);
+            }
 
-        // Coba kembali ke halaman sebelumnya jika ada
-        $referer = $request->session()->get('_previous.url');
+            // Fallback ke route default jika tidak ada referer
+            $routeName = match (Auth::getDefaultDriver()) {
+                'dosen' => 'dosen.persetujuan',
+                'mahasiswa' => 'mahasiswa.usulanbimbingan',
+                default => 'login'
+            };
 
-        if ($referer) {
-            return redirect($referer)
+            Log::error('Error Google Calendar: ' . $e->getMessage());
+
+            return redirect()->route($routeName, ['tab' => 'jadwal'])
                 ->with('error', $errorMessage);
         }
-
-        // Fallback ke route default jika tidak ada referer
-        $routeName = match (Auth::getDefaultDriver()) {
-            'dosen' => 'dosen.persetujuan',
-            'mahasiswa' => 'mahasiswa.usulanbimbingan',
-            default => 'login'
-        };
-
-        Log::error('Error Google Calendar: ' . $e->getMessage());
-
-        return redirect()->route($routeName, ['tab' => 'jadwal'])
-            ->with('error', $errorMessage);
     }
-}
 
     /**
      * Mendapatkan events dari Google Calendar
@@ -237,7 +236,7 @@ class GoogleCalendarController extends Controller
             // Ambil parameter dari request
             $startStr = $request->query('start');
             $endStr = $request->query('end');
-            $filterDuplicates = $request->query('filter_duplicates', true);
+            $filterDuplicates = $request->query('filter_duplicates', true); // Parameter untuk mengaktifkan filter duplikasi
 
             Log::info('Request parameters for events:', [
                 'start' => $startStr,
@@ -563,7 +562,7 @@ class GoogleCalendarController extends Controller
         }
     }
 
-    public function updateEventAttendees($eventId, $attendees)
+    public function updateEventAttendees($eventId, $attendees, $options = [])
     {
         try {
             if (!$this->checkAndRefreshToken()) {
@@ -578,12 +577,45 @@ class GoogleCalendarController extends Controller
             // Update attendees
             $event->setAttendees($attendees);
 
+            // Update deskripsi jika disediakan
+            if (isset($options['description'])) {
+                $event->setDescription($options['description']);
+            }
+
+            // Update reminders jika disediakan
+            if (isset($options['reminders'])) {
+                $reminders = new Google_Service_Calendar_EventReminders();
+                $reminders->setUseDefault($options['reminders']['useDefault'] ?? false);
+
+                if (isset($options['reminders']['overrides'])) {
+                    $overrides = [];
+                    foreach ($options['reminders']['overrides'] as $override) {
+                        $reminder = new Google_Service_Calendar_EventReminder();
+                        $reminder->setMethod($override['method']);
+                        $reminder->setMinutes($override['minutes']);
+                        $overrides[] = $reminder;
+                    }
+                    $reminders->setOverrides($overrides);
+                }
+
+                $event->setReminders($reminders);
+            }
+
+            // Log untuk debugging
+            Log::info('Updating event with attendees and options:', [
+                'event_id' => $eventId,
+                'attendees_count' => count($attendees),
+                'options' => $options
+            ]);
+
             // Update event dengan notifikasi
             return $this->service->events->update('primary', $eventId, $event, [
-                'sendUpdates' => 'all' // Kirim notifikasi ke semua peserta
+                'sendUpdates' => $options['sendUpdates'] ?? 'all' // Kirim notifikasi ke semua peserta
             ]);
         } catch (\Exception $e) {
-            Log::error('Error updating event attendees: ' . $e->getMessage());
+            Log::error('Error updating event attendees: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             throw $e;
         }
     }
@@ -796,11 +828,33 @@ class GoogleCalendarController extends Controller
 
     public function initWithUserToken($user)
     {
-        if (!$user->hasGoogleCalendarConnected()) {
+        if (!$user || !$user->hasGoogleCalendarConnected()) {
+            Log::error('User tidak memiliki token Google Calendar yang valid', [
+                'user_id' => $user ? $user->id : 'null'
+            ]);
             return false;
         }
 
         try {
+            // Reset client jika sudah digunakan sebelumnya
+            $this->client = new Google_Client();
+
+            // Atur konfigurasi awal client
+            $credentialsPath = storage_path('app/google-calendar/credentials.json');
+            if (!file_exists($credentialsPath)) {
+                throw new \Exception('Google Calendar credentials file not found');
+            }
+
+            $this->client->setAuthConfig($credentialsPath);
+            $this->client->setApplicationName('Sistem Bimbingan');
+            $this->client->setAccessType('offline');
+            $this->client->setPrompt('consent');
+            $this->client->setIncludeGrantedScopes(true);
+            $this->client->addScope(Google_Service_Calendar::CALENDAR);
+            $this->client->addScope('email');
+            $this->client->addScope('profile');
+
+            // Set token user
             $token = [
                 'access_token' => $user->google_access_token,
                 'refresh_token' => $user->google_refresh_token,
@@ -812,27 +866,50 @@ class GoogleCalendarController extends Controller
 
             // Refresh token jika expired
             if ($this->client->isAccessTokenExpired() && $user->google_refresh_token) {
+                Log::info('Refreshing expired token for user', [
+                    'user_id' => $user->id,
+                    'old_token_created' => $user->google_token_created_at
+                ]);
+
                 try {
                     $newToken = $this->client->fetchAccessTokenWithRefreshToken($user->google_refresh_token);
 
-                    // Update token
-                    $user->updateGoogleToken(
-                        $newToken['access_token'],
-                        $newToken['refresh_token'] ?? $user->google_refresh_token,
-                        $newToken['expires_in'] ?? 3600
-                    );
+                    if (!isset($newToken['access_token'])) {
+                        Log::error('Token refresh failed - no access_token in response', [
+                            'response' => $newToken
+                        ]);
+                        return false;
+                    }
+
+                    // Update token baru
+                    $user->google_access_token = $newToken['access_token'];
+                    if (isset($newToken['refresh_token'])) {
+                        $user->google_refresh_token = $newToken['refresh_token'];
+                    }
+                    $user->google_token_expires_in = $newToken['expires_in'] ?? 3600;
+                    $user->google_token_created_at = now();
+                    $user->save();
 
                     $this->client->setAccessToken($newToken);
+
+                    Log::info('Token refreshed successfully for user', [
+                        'user_id' => $user->id
+                    ]);
                 } catch (\Exception $e) {
-                    Log::error('Error refreshing token for user: ' . $e->getMessage());
+                    Log::error('Error refreshing token: ' . $e->getMessage(), [
+                        'trace' => $e->getTraceAsString()
+                    ]);
                     return false;
                 }
             }
 
+            // Inisialisasi service
             $this->service = new Google_Service_Calendar($this->client);
             return true;
         } catch (\Exception $e) {
-            Log::error('Error initializing with user token: ' . $e->getMessage());
+            Log::error('Error initializing client with user token: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return false;
         }
     }
@@ -885,5 +962,58 @@ class GoogleCalendarController extends Controller
         }
 
         return false;
+    }
+    /**
+     * Menandai event sebagai dibatalkan di Google Calendar 
+     */
+    public function markEventAsCancelled($eventId, $reason)
+    {
+        try {
+            if (!$this->checkAndRefreshToken()) {
+                throw new \Exception('Tidak terautentikasi dengan Google Calendar');
+            }
+
+            $this->service = new Google_Service_Calendar($this->client);
+
+            // Ambil event yang akan ditandai
+            $event = $this->service->events->get('primary', $eventId);
+
+            // Ubah judul untuk menunjukkan pembatalan
+            $originalSummary = $event->getSummary();
+            if (strpos($originalSummary, '[DIBATALKAN]') === false) {
+                $event->setSummary('[DIBATALKAN] ' . $originalSummary);
+            }
+
+            // Tambahkan alasan pembatalan ke deskripsi
+            $originalDesc = $event->getDescription() ?: '';
+            $cancelNote = "\n\n--- DIBATALKAN ---\n" .
+                "Alasan: {$reason}\n" .
+                "Waktu pembatalan: " . now()->format('d-m-Y H:i');
+
+            $event->setDescription($originalDesc . $cancelNote);
+
+            // Ubah warna event menjadi abu-abu (indikasi dibatalkan)
+            $event->setColorId('8'); // 8 = abu-abu di Google Calendar
+
+            // Update status event menjadi dibatalkan - ini penting!
+            $event->setStatus('cancelled');
+
+            // Simpan perubahan
+            return $this->service->events->update('primary', $eventId, $event);
+        } catch (\Exception $e) {
+            Log::error('Error marking Google Calendar event as cancelled: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+    /**
+     * Mendapatkan instance Google Client
+     */
+    public function getClient()
+    {
+        if (!$this->client) {
+            throw new \Exception('Google Client belum diinisialisasi');
+        }
+
+        return $this->client;
     }
 }

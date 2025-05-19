@@ -309,7 +309,12 @@ class PilihJadwalController extends Controller
                 // Hitung jumlah pendaftar dari database
                 $pendaftarCount = DB::table('usulan_bimbingans')
                     ->where('event_id', $jadwal->event_id)
-                    ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI'])
+                    ->whereIn('status', ['USULAN', 'DITERIMA', 'DISETUJUI', 'SELESAI'])
+                    ->count();
+                
+                    $selesaiCount = DB::table('usulan_bimbingans')
+                    ->where('event_id', $jadwal->event_id)
+                    ->where('status', 'SELESAI')
                     ->count();
 
                 // Update status jadwal
@@ -344,14 +349,17 @@ class PilihJadwalController extends Controller
                 $displayText = "{$hari}, {$tanggalFormat} | {$waktuMulai}-{$waktuSelesai}";
 
                 if ($jadwal->kapasitas > 0 && $jadwal->has_kuota_limit) {
-                    // Tampilkan status kuota yang akurat
-                    $displayText .= " | Kuota: {$jadwal->jumlah_pendaftar}/{$jadwal->kapasitas} terpakai";
-
-                    // Tandai jadwal penuh jika jumlah pendaftar >= kapasitas
-                    if ($jadwal->jumlah_pendaftar >= $jadwal->kapasitas) {
+                    // PERBAIKAN: Tambahkan informasi yang sudah selesai
+                    if ($selesaiCount > 0) {
+                        $displayText .= " | Kuota: {$pendaftarCount}/{$jadwal->kapasitas} terpakai";
+                    }
+                    
+                    // PENTING: Jangan hilangkan kondisi untuk melewati jadwal penuh
+                    if ($pendaftarCount >= $jadwal->kapasitas) {
                         continue; // Skip jadwal yang penuh
                     }
                 } else {
+                    // PENTING: Tetap tampilkan informasi untuk kuota tidak terbatas
                     $displayText .= " | Kuota Tidak Terbatas";
                 }
 

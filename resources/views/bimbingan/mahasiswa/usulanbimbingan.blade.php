@@ -260,6 +260,74 @@
         right: 14px;
     }
 }
+/* Pagination styles */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: #2563eb; /* Mempertahankan warna biru */
+    border: 1px solid #e5e7eb;
+    padding: 0.5rem 0.75rem;
+}
+
+.page-link:hover {
+    color: #1d4ed8;
+    background-color: #f3f4f6;
+}
+
+.page-item.active .page-link {
+    background-color: #2563eb; /* Warna biru untuk active */
+    border-color: #2563eb;
+    color: white;
+}
+
+.page-item.disabled .page-link {
+    color: #6c757d;
+    pointer-events: none;
+    background-color: #fff;
+    border-color: #dee2e6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .pagination {
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    
+    .pagination .page-item {
+        margin-bottom: 5px;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        text-align: center;
+        width: 100%;
+    }
+}
+
+@media (min-width: 992px) {
+    .d-flex.flex-column.flex-lg-row {
+        align-items: center;
+    }
+    
+    .d-flex.flex-column.flex-lg-row > p {
+        margin-bottom: 0;
+        white-space: nowrap;
+    }
+    
+    .pagination {
+        margin-left: 15px;
+    }
+}
+
+/* Mobile optimization */
+@media (max-width: 575.98px) {
+    .page-link {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.9rem;
+    }
+}
     </style>
 @endpush
 
@@ -277,19 +345,19 @@
             <div class="card-header bg-white p-0">
                 <ul class="nav nav-tabs" id="bimbinganTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'usulan', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'usulan', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'usulan' ? 'active' : '' }}">
                             Bimbingan
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'jadwal', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'jadwal', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'jadwal' ? 'active' : '' }}">
                             Jadwal
                         </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'riwayat', 'per_page' => request('per_page', 10)]) }}"
+                        <a href="{{ route('mahasiswa.usulanbimbingan', ['tab' => 'riwayat', 'per_page' => request('per_page', 50)]) }}"
                             class="nav-link px-4 py-3 {{ $activeTab == 'riwayat' ? 'active' : '' }}">
                             Riwayat
                         </a>
@@ -303,11 +371,11 @@
                         <div class="d-flex align-items-center">
                             <label class="me-2">Tampilkan</label>
                             <select class="form-select form-select-sm w-auto"
-                                onchange="window.location.href='{{ route('mahasiswa.usulanbimbingan', ['tab' => $activeTab]) }}&per_page=' + this.value">
-                                <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
-                                <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
+                            onchange="window.location.href='{{ route('mahasiswa.usulanbimbingan', ['tab' => $activeTab]) }}&per_page=' + this.value">
+                                <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
                                 <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
                                 <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
+                                <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                             </select>
                             <label class="ms-2">entries</label>
                         </div>
@@ -499,22 +567,19 @@
                     @endif
                 </div>
 
-                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3">
-                    <p class="mb-2">
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center mt-3">
+                    <p class="mb-3 mb-lg-0">
                         @if ($activeTab == 'usulan' && $usulan->total() > 0)
-                            Menampilkan {{ $usulan->firstItem() }} sampai {{ $usulan->lastItem() }} dari
-                            {{ $usulan->total() }} entri
+                            Menampilkan {{ $usulan->firstItem() }} sampai {{ $usulan->lastItem() }} dari {{ $usulan->total() }} entri
                         @elseif($activeTab == 'jadwal' && $daftarDosen->total() > 0)
-                            Menampilkan {{ $daftarDosen->firstItem() }} sampai {{ $daftarDosen->lastItem() }} dari
-                            {{ $daftarDosen->total() }} entri
+                            Menampilkan {{ $daftarDosen->firstItem() }} sampai {{ $daftarDosen->lastItem() }} dari {{ $daftarDosen->total() }} entri
                         @elseif($activeTab == 'riwayat' && $riwayat->total() > 0)
-                            Menampilkan {{ $riwayat->firstItem() }} sampai {{ $riwayat->lastItem() }} dari
-                            {{ $riwayat->total() }} entri
+                            Menampilkan {{ $riwayat->firstItem() }} sampai {{ $riwayat->lastItem() }} dari {{ $riwayat->total() }} entri
                         @endif
                     </p>
                     <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-end mb-0">
-                            {{-- Previous Page --}}
+                        <ul class="pagination justify-content-center justify-content-lg-end mb-0">
+                            {{-- Previous Page for USULAN tab --}}
                             @if ($activeTab == 'usulan')
                                 @if ($usulan->onFirstPage())
                                     <li class="page-item disabled">
@@ -522,30 +587,29 @@
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $usulan->previousPageUrl() }}&tab=usulan">« Sebelumnya</a>
+                                        <a class="page-link" href="{{ $usulan->previousPageUrl() }}&tab=usulan">« Sebelumnya</a>
                                     </li>
                                 @endif
-
-                                {{-- Page Numbers --}}
+                
+                                {{-- Page Numbers for USULAN tab --}}
                                 @foreach ($usulan->getUrlRange(1, $usulan->lastPage()) as $page => $url)
                                     <li class="page-item {{ $page == $usulan->currentPage() ? 'active' : '' }}">
-                                        <a class="page-link"
-                                            href="{{ $url }}&tab=usulan">{{ $page }}</a>
+                                        <a class="page-link" href="{{ $url }}&tab=usulan">{{ $page }}</a>
                                     </li>
                                 @endforeach
-
-                                {{-- Next Page --}}
+                
+                                {{-- Next Page for USULAN tab --}}
                                 @if ($usulan->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $usulan->nextPageUrl() }}&tab=usulan">Selanjutnya »</a>
+                                        <a class="page-link" href="{{ $usulan->nextPageUrl() }}&tab=usulan">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
                                         <span class="page-link">Selanjutnya »</span>
                                     </li>
                                 @endif
+                                
+                            {{-- Previous Page for JADWAL tab --}}
                             @elseif($activeTab == 'jadwal')
                                 @if ($daftarDosen->onFirstPage())
                                     <li class="page-item disabled">
@@ -553,28 +617,29 @@
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $daftarDosen->previousPageUrl() }}&tab=jadwal">« Sebelumnya</a>
+                                        <a class="page-link" href="{{ $daftarDosen->previousPageUrl() }}&tab=jadwal">« Sebelumnya</a>
                                     </li>
                                 @endif
-
+                
+                                {{-- Page Numbers for JADWAL tab --}}
                                 @foreach ($daftarDosen->getUrlRange(1, $daftarDosen->lastPage()) as $page => $url)
                                     <li class="page-item {{ $page == $daftarDosen->currentPage() ? 'active' : '' }}">
-                                        <a class="page-link"
-                                            href="{{ $url }}&tab=jadwal">{{ $page }}</a>
+                                        <a class="page-link" href="{{ $url }}&tab=jadwal">{{ $page }}</a>
                                     </li>
                                 @endforeach
-
+                
+                                {{-- Next Page for JADWAL tab --}}
                                 @if ($daftarDosen->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $daftarDosen->nextPageUrl() }}&tab=jadwal">Selanjutnya »</a>
+                                        <a class="page-link" href="{{ $daftarDosen->nextPageUrl() }}&tab=jadwal">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
                                         <span class="page-link">Selanjutnya »</span>
                                     </li>
                                 @endif
+                                
+                            {{-- Previous Page for RIWAYAT tab --}}
                             @elseif($activeTab == 'riwayat')
                                 @if ($riwayat->onFirstPage())
                                     <li class="page-item disabled">
@@ -582,22 +647,21 @@
                                     </li>
                                 @else
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $riwayat->previousPageUrl() }}&tab=riwayat">« Sebelumnya</a>
+                                        <a class="page-link" href="{{ $riwayat->previousPageUrl() }}&tab=riwayat">« Sebelumnya</a>
                                     </li>
                                 @endif
-
+                
+                                {{-- Page Numbers for RIWAYAT tab --}}
                                 @foreach ($riwayat->getUrlRange(1, $riwayat->lastPage()) as $page => $url)
                                     <li class="page-item {{ $page == $riwayat->currentPage() ? 'active' : '' }}">
-                                        <a class="page-link"
-                                            href="{{ $url }}&tab=riwayat">{{ $page }}</a>
+                                        <a class="page-link" href="{{ $url }}&tab=riwayat">{{ $page }}</a>
                                     </li>
                                 @endforeach
-
+                
+                                {{-- Next Page for RIWAYAT tab --}}
                                 @if ($riwayat->hasMorePages())
                                     <li class="page-item">
-                                        <a class="page-link"
-                                            href="{{ $riwayat->nextPageUrl() }}&tab=riwayat">Selanjutnya »</a>
+                                        <a class="page-link" href="{{ $riwayat->nextPageUrl() }}&tab=riwayat">Selanjutnya »</a>
                                     </li>
                                 @else
                                     <li class="page-item disabled">
