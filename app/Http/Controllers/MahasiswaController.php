@@ -82,7 +82,7 @@ class MahasiswaController extends Controller
         }
     }
 
-    public function getDetailBimbingan($id)
+    public function getDetailBimbingan($id, $origin = null)
     {
         try {
             $usulan = DB::table('usulan_bimbingans as ub')
@@ -111,7 +111,7 @@ class MahasiswaController extends Controller
                     $statusBadgeClass = 'bg-danger';
                     break;
                 case 'USULAN':
-                    $statusBadgeClass = 'bg-info';
+                    $statusBadgeClass = 'bg-warning';
                     break;
                 case 'SELESAI':
                     $statusBadgeClass = 'bg-primary';
@@ -129,7 +129,8 @@ class MahasiswaController extends Controller
                 'tanggal',
                 'waktuMulai',
                 'waktuSelesai',
-                'statusBadgeClass'
+                'statusBadgeClass',
+                'origin'
             ));
         } catch (\Exception $e) {
             Log::error('Error di getDetailBimbingan: ' . $e->getMessage());

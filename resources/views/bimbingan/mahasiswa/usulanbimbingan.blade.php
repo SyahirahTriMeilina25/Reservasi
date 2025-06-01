@@ -443,11 +443,10 @@
                                                         </div>
                                                     @else
                                                         <div class="action-icons">
-                                                            <a href="{{ route('mahasiswa.aksiInformasi', $item->id) }}"
-                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                title="Info">
-                                                                <i class="bi bi-info-circle"></i>
-                                                            </a>
+                                                            <a href="{{ route('mahasiswa.aksiInformasi', ['id' => $item->id, 'origin' => 'usulan']) }}" 
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                                 <i class="bi bi-info-circle"></i>
+                                                             </a>
                                                         </div>
                                                     @endif
                                                 </td>
@@ -486,11 +485,10 @@
                                                 <td>{{ $dosen->total_bimbingan }}</td>
                                                 <td>
                                                     <div class="action-icons">
-                                                        <a href="{{ route('mahasiswa.detaildaftar', $dosen->nip) }}"
-                                                            class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                            title="Info">
-                                                            <i class="bi bi-info-circle"></i>
-                                                        </a>
+                                                        <a href="{{ route('mahasiswa.detaildaftar', ['nip' => $dosen->nip, 'origin' => 'jadwal']) }}" 
+                                                            class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                             <i class="bi bi-info-circle"></i>
+                                                         </a>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -547,11 +545,10 @@
                                                 }} text-white">{{ $item->status }}</td>
                                                 <td>
                                                     <div class="action-icons">
-                                                        <a href="{{ route('mahasiswa.aksiInformasi', $item->id) }}"
-                                                            class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                            title="Info">
-                                                            <i class="bi bi-info-circle"></i>
-                                                        </a>
+                                                        <a href="{{ route('mahasiswa.aksiInformasi', ['id' => $item->id, 'origin' => 'riwayat']) }}" 
+                                                            class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                             <i class="bi bi-info-circle"></i>
+                                                         </a>
                                                     </div>
                                                 </td>
                                             </tr>

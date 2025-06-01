@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use App\Http\Controllers\AdminController;
 use Illuminate\Support\Facades\Log;
 
 // Route untuk guest (belum login)
@@ -26,9 +27,11 @@ Route::get('/datausulanbimbingan', function () {
     return view('bimbingan.admin.datausulanbimbingan');
 });
 
+// ===============================================================================
+// ROUTES UNTUK MAHASISWA & DOSEN (PESAN)
+// ===============================================================================
 Route::middleware(['auth:mahasiswa,dosen'])->group(function () {
     Route::prefix('pesan')->group(function () {
-
         Route::get('/dashboardkonsultasi', function () {
             if (auth()->guard('mahasiswa')->check()) {
                 return app(PesanController::class)->indexMahasiswa();
@@ -52,31 +55,36 @@ Route::middleware(['auth:mahasiswa,dosen'])->group(function () {
         Route::post('/end/{id}', [PesanController::class, 'endChat'])->name('pesan.end');
         Route::get('/attachment/{id}', [PesanController::class, 'downloadAttachment'])->name('pesan.attachment');
     });
+});
 
+// ===============================================================================
+// ROUTES UNTUK MAHASISWA, DOSEN & ADMIN (PROFIL + VERIFY PAGE)
+// ===============================================================================
+Route::middleware(['auth:mahasiswa,dosen,admin'])->group(function () {
     Route::controller(ProfilController::class)->group(function () {
         Route::get('/profil', 'show')->name('profile.show');
         Route::put('/profil/update', 'update')->name('profile.update');
         Route::delete('/profil/remove', 'remove')->name('profile.remove');
+        Route::post('/profil/change-password', 'changePassword')->name('profile.change-password');
     });
 
     Route::post('/verify-page', function (Request $request) {
         if ($request->page_token !== session('page_token')) {
             return redirect()->route('login');
         }
-
-        // Token cocok, authentikasi valid
         return redirect()->back();
     });
 });
 
-// Route untuk mahasiswa
+// ===============================================================================
+// ROUTES KHUSUS MAHASISWA
+// ===============================================================================
 Route::middleware(['auth:mahasiswa', 'checkRole:mahasiswa'])->group(function () {
-    // Route view biasa
-
     Route::controller(MahasiswaController::class)->group(function () {
         Route::get('/usulanbimbingan', 'index')->name('mahasiswa.usulanbimbingan');
         Route::post('/usulanbimbingan/selesai/{id}', 'selesaiBimbingan')->name('mahasiswa.selesaibimbingan');
-        Route::get('/aksiInformasi/{id}', 'getDetailBimbingan')->name('mahasiswa.aksiInformasi');
+        Route::get('/aksi-informasi/{id}/{origin?}', [MahasiswaController::class, 'getDetailBimbingan'])
+            ->name('mahasiswa.aksiInformasi');
         Route::get('/detaildaftar/{nip}', 'getDetailDaftar')->name('mahasiswa.detaildaftar');
     });
 
@@ -98,13 +106,14 @@ Route::middleware(['auth:mahasiswa', 'checkRole:mahasiswa'])->group(function () 
     });
 });
 
-// Route untuk dosen
+// ===============================================================================
+// ROUTES KHUSUS DOSEN
+// ===============================================================================
 Route::middleware(['auth:dosen', 'checkRole:dosen'])->group(function () {
-    // Route view biasa
-
     Route::controller(DosenController::class)->group(function () {
         Route::get('/persetujuan', 'index')->name('dosen.persetujuan');
-        Route::get('/terimausulanbimbingan/{id}', 'getDetailBimbingan')->name('dosen.detailbimbingan');
+        Route::get('/detail-bimbingan/{id}/{origin?}', [DosenController::class, 'getDetailBimbingan'])
+            ->name('dosen.detailbimbingan');
         Route::post('/terimausulanbimbingan/terima/{id}', 'terima')->name('dosen.detailbimbingan.terima');
         Route::post('/terimausulanbimbingan/tolak/{id}', 'tolak')->name('dosen.detailbimbingan.tolak');
         Route::post('/persetujuan/terima/{id}', 'terima')->name('dosen.persetujuan.terima');
@@ -137,7 +146,57 @@ Route::middleware(['auth:dosen', 'checkRole:dosen'])->group(function () {
     });
 });
 
-// Route debugging
+// ===============================================================================
+// ROUTES KHUSUS ADMIN
+// ===============================================================================
+Route::middleware(['web', 'auth:admin', 'checkRole:admin'])->prefix('admin')->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dosen/{nip}', [AdminController::class, 'detailDosen'])->name('admin.detaildosen');
+    Route::get('/dosen/riwayat/{nip}', [AdminController::class, 'detailRiwayatDosen'])->name('admin.detailriwayatdosen');
+
+    // Detail Bimbingan dan Riwayat
+    Route::get('/detail-bimbingan/{id}/{origin?}', [AdminController::class, 'getDetailBimbingan'])->name('admin.getDetailBimbingan');
+    Route::get('/detail-riwayat-dosen/{id}', [AdminController::class, 'getRiwayatDetail'])->name('admin.getRiwayatDetail');
+
+
+    // Manajemen Data Admin
+    Route::get('/data-admin', [AdminController::class, 'dataAdmin'])->name('admin.dataadmin');
+    Route::get('/edit-admin/{id}', [AdminController::class, 'editAdmin'])->name('admin.editadmin');
+    Route::put('/update-admin/{id}', [AdminController::class, 'updateAdmin'])->name('admin.updateadmin');
+    Route::post('/reset-password-admin/{id}', [AdminController::class, 'resetPasswordAdmin'])->name('admin.resetpasswordadmin');
+
+
+    // Manajemen Data Mahasiswa
+    Route::get('/data-mahasiswa', [AdminController::class, 'dataMahasiswa'])->name('admin.datamahasiswa');
+    Route::get('/tambah-mahasiswa', [AdminController::class, 'tambahMahasiswa'])->name('admin.tambahmahasiswa');
+    Route::post('/simpan-mahasiswa', [AdminController::class, 'simpanMahasiswa'])->name('admin.simpanmahasiswa');
+    Route::get('/edit-mahasiswa/{nim}', [AdminController::class, 'editMahasiswa'])->name('admin.editmahasiswa');
+    Route::put('/update-mahasiswa/{nim}', [AdminController::class, 'updateMahasiswa'])->name('admin.updatemahasiswa');
+    Route::post('/reset-password-mahasiswa/{nim}', [AdminController::class, 'resetPasswordMahasiswa'])->name('admin.resetpasswordmahasiswa');
+    Route::delete('/hapus-mahasiswa/{nim}', [AdminController::class, 'hapusMahasiswa'])->name('admin.hapusmahasiswa');
+
+    // Manajemen Data Dosen
+    Route::get('/data-dosen', [AdminController::class, 'dataDosen'])->name('admin.datadosen');
+    Route::get('/tambah-dosen', [AdminController::class, 'tambahDosen'])->name('admin.tambahdosen');
+    Route::post('/simpan-dosen', [AdminController::class, 'simpanDosen'])->name('admin.simpandosen');
+    Route::get('/edit-dosen/{nip}', [AdminController::class, 'editDosen'])->name('admin.editdosen');
+    Route::put('/update-dosen/{nip}', [AdminController::class, 'updateDosen'])->name('admin.updatedosen');
+    Route::post('/reset-password-dosen/{nip}', [AdminController::class, 'resetPasswordDosen'])->name('admin.resetpassworddosen');
+    Route::delete('/hapus-dosen/{nip}', [AdminController::class, 'hapusDosen'])->name('admin.hapusdosen');
+
+    // Manajemen Konsentrasi
+    Route::get('/data-konsentrasi', [AdminController::class, 'dataKonsentrasi'])->name('admin.datakonsentrasi');
+    Route::get('/tambah-konsentrasi', [AdminController::class, 'tambahKonsentrasi'])->name('admin.tambahkonsentrasi');
+    Route::post('/simpan-konsentrasi', [AdminController::class, 'simpanKonsentrasi'])->name('admin.simpankonsentrasi');
+    Route::get('/edit-konsentrasi/{id}', [AdminController::class, 'editKonsentrasi'])->name('admin.editkonsentrasi');
+    Route::put('/update-konsentrasi/{id}', [AdminController::class, 'updateKonsentrasi'])->name('admin.updatekonsentrasi');
+    Route::delete('/hapus-konsentrasi/{id}', [AdminController::class, 'hapusKonsentrasi'])->name('admin.hapuskonsentrasi');
+});
+
+// ===============================================================================
+// ROUTES DEBUGGING & UTILITIES
+// ===============================================================================
 Route::get('/debug-jadwal', function () {
     $jadwals = DB::table('jadwal_bimbingans')
         ->whereNotNull('jenis_bimbingan')
@@ -167,6 +226,7 @@ Route::get('/debug-struktur-tabel', function () {
         'has_has_kuota_limit' => in_array('has_kuota_limit', $columns)
     ];
 });
+
 Route::get('/debug-jenis-bimbingan', function () {
     $dosenList = DB::table('dosens')
         ->select('nip', 'nama')
@@ -286,8 +346,6 @@ Route::get('/run-update-jadwal', function () {
 });
 
 // Di routes/web.php
-// Di routes/web.php
-// Di routes/web.php
 Route::get('/jadwal/{id}/status', function ($id) {
     // Cari jadwal berdasarkan ID atau event_ID
     if (!is_numeric($id)) {
@@ -310,23 +368,23 @@ Route::get('/jadwal/{id}/status', function ($id) {
         ->where('event_id', $jadwal->event_id)
         ->where('status', 'SELESAI')
         ->count();
-    
+
     // Hitung jumlah yang AKTIF (tidak termasuk SELESAI)
     $aktifCount = $pendaftarCount - $selesaiCount;
 
     // PERBAIKAN: Ambil nilai-nilai ENUM yang valid
     $validStatusQuery = DB::select("SHOW COLUMNS FROM jadwal_bimbingans WHERE Field = 'status'");
     $validStatusValues = [];
-    
+
     if (!empty($validStatusQuery) && isset($validStatusQuery[0]->Type)) {
         preg_match('/enum\((.*)\)/', $validStatusQuery[0]->Type, $matches);
         if (isset($matches[1])) {
-            $validStatusValues = array_map(function($val) {
+            $validStatusValues = array_map(function ($val) {
                 return trim($val, "'\"");
             }, explode(',', $matches[1]));
         }
     }
-    
+
     // PERBAIKAN: Tentukan status berdasarkan nilai yang valid
     $newStatus = '';
     if ($jadwal->has_kuota_limit && $pendaftarCount >= $jadwal->kapasitas) {
@@ -337,14 +395,14 @@ Route::get('/jadwal/{id}/status', function ($id) {
     } else {
         $newStatus = 'tersedia'; // Default status
     }
-    
+
     // PERBAIKAN: Pastikan status valid sebelum mengupdate
     if (!in_array($newStatus, $validStatusValues)) {
         $newStatus = 'tersedia'; // Gunakan tersedia sebagai fallback aman
     }
 
     // Hitung sisa kapasitas
-    $sisaKapasitas = $jadwal->has_kuota_limit ? 
+    $sisaKapasitas = $jadwal->has_kuota_limit ?
         max(0, $jadwal->kapasitas - $pendaftarCount) : 0;
 
     // PERBAIKAN: Jangan gunakan DB::raw, gunakan binding parameter biasa
@@ -358,13 +416,13 @@ Route::get('/jadwal/{id}/status', function ($id) {
                 'updated_at' => now()
             ]);
     } catch (\Exception $e) {
-        \Illuminate\Support\Facades\Log::error('Error update status: '.$e->getMessage());
+        \Illuminate\Support\Facades\Log::error('Error update status: ' . $e->getMessage());
         // Jangan throw error, biarkan tetap lanjut dengan status terakhir
     }
-    
+
     // Ambil jadwal yang sudah diupdate untuk respons
     $updatedJadwal = \App\Models\JadwalBimbingan::find($jadwal->id);
-    
+
     // TAMBAHAN: Berikan status label yang benar meskipun tidak ada di database
     $statusLabel = match ($updatedJadwal->status) {
         'tersedia' => 'Tersedia',
@@ -435,13 +493,239 @@ Route::get('/debug-event-id/{id}', function ($id) {
     return ['error' => 'Not found with either method'];
 });
 
+// ===============================================================================
+// ROUTES AUTHENTICATION & SESSION DEBUGGING
+// ===============================================================================
+
 // Route untuk pengecekan status autentikasi
 Route::get('/auth-check', function () {
-    if (Auth::guard('mahasiswa')->check() || Auth::guard('dosen')->check()) {
+    if (Auth::guard('mahasiswa')->check() || Auth::guard('dosen')->check() || Auth::guard('admin')->check()) {
         return response()->json(['authenticated' => true], 200);
     }
     return response()->json(['authenticated' => false], 401);
 })->middleware('web');
 
-// Logout route
+Route::get('/check-all-auth', function () {
+    return response()->json([
+        'mahasiswa' => Auth::guard('mahasiswa')->check(),
+        'dosen' => Auth::guard('dosen')->check(),
+        'admin' => Auth::guard('admin')->check(),
+        'session_id' => session()->getId(),
+        'session_data' => array_keys(session()->all())
+    ]);
+});
+
+// Tambahkan di bagian atas routes/web.php
+Route::get('/debug-auth', function () {
+    $output = [];
+
+    // Periksa tabel role
+    $roles = DB::table('role')->get();
+    $output['roles'] = $roles->toArray();
+
+    // Periksa admin
+    $admins = DB::table('admin')->get();
+    $output['admins'] = $admins->toArray();
+
+    // Periksa relasi admin-role
+    $adminInfo = [];
+    foreach ($admins as $admin) {
+        $role = DB::table('role')->where('id', $admin->role_id ?? 0)->first();
+        $adminInfo[] = [
+            'id' => $admin->id,
+            'username' => $admin->username,
+            'role_id' => $admin->role_id,
+            'role_name' => $role ? $role->role_akses : 'TIDAK DITEMUKAN'
+        ];
+    }
+    $output['admin_roles'] = $adminInfo;
+
+    return response()->json($output);
+});
+
+// Tambahkan route untuk memperbaiki admin
+Route::get('/fix-admin-role', function () {
+    // Cari role admin
+    $adminRole = DB::table('role')->where('role_akses', 'admin')->first();
+
+    if (!$adminRole) {
+        // Buat role admin jika tidak ada
+        $roleId = DB::table('role')->insertGetId([
+            'role_akses' => 'admin',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        $message = "Role admin dibuat dengan ID: $roleId";
+    } else {
+        $roleId = $adminRole->id;
+        $message = "Role admin ditemukan dengan ID: $roleId";
+    }
+
+    // Update semua admin yang tidak memiliki role_id valid
+    $updated = DB::table('admin')
+        ->whereNull('role_id')
+        ->orWhereNotIn('role_id', function ($query) {
+            $query->select('id')->from('role');
+        })
+        ->update(['role_id' => $roleId]);
+
+    return response()->json([
+        'message' => $message,
+        'admin_updated' => $updated
+    ]);
+});
+
+Route::get('/test-session', function () {
+    // Simpan data ke session
+    session(['test_key' => 'test_value_' . time()]);
+
+    // Cek apakah tersimpan
+    echo '<h1>Session Test</h1>';
+    echo '<p>Session driver: ' . config('session.driver') . '</p>';
+    echo '<p>Session ID: ' . session()->getId() . '</p>';
+    echo '<p>Test key value: ' . session('test_key') . '</p>';
+
+    // Cek dalam database
+    echo '<h2>Session dari Database:</h2>';
+    echo '<pre>';
+    print_r(DB::table('sessions')->where('id', session()->getId())->first());
+    echo '</pre>';
+});
+
+// Tambahkan di routes/web.php
+// Route DEBUG - HAPUS SETELAH PERBAIKAN SELESAI
+Route::get('/debug-session', function () {
+    // Tampilkan info session
+    echo "<h1>Session Debug</h1>";
+
+    echo "<h2>Session ID: </h2>";
+    echo session()->getId();
+
+    echo "<h2>Session Data:</h2>";
+    echo "<pre>";
+    print_r(session()->all());
+    echo "</pre>";
+
+    echo "<h2>Auth Status:</h2>";
+    echo "Admin: " . (Auth::guard('admin')->check() ? "Logged In" : "Not Logged In") . "<br>";
+    echo "Mahasiswa: " . (Auth::guard('mahasiswa')->check() ? "Logged In" : "Not Logged In") . "<br>";
+    echo "Dosen: " . (Auth::guard('dosen')->check() ? "Logged In" : "Not Logged In") . "<br>";
+
+    echo "<h2>Session in Database:</h2>";
+    echo "<pre>";
+    try {
+        $sessionId = session()->getId();
+        $dbSession = DB::table('sessions')->where('id', $sessionId)->first();
+        if ($dbSession) {
+            print_r((array)$dbSession);
+        } else {
+            echo "Session not found in database!";
+        }
+    } catch (\Exception $e) {
+        echo "Error: " . $e->getMessage();
+    }
+    echo "</pre>";
+
+    echo "<h2>Session Configuration:</h2>";
+    echo "<pre>";
+    echo "Driver: " . config('session.driver') . "\n";
+    echo "Lifetime: " . config('session.lifetime') . " minutes\n";
+    echo "Cookie: " . config('session.cookie') . "\n";
+    echo "Path: " . config('session.path') . "\n";
+    echo "Domain: " . (config('session.domain') ?: "NULL") . "\n";
+    echo "Secure: " . (config('session.secure') ? "Yes" : "No") . "\n";
+    echo "HTTP Only: " . (config('session.http_only') ? "Yes" : "No") . "\n";
+    echo "Same Site: " . config('session.same_site') . "\n";
+    echo "</pre>";
+
+    echo "<p><a href='/'>Home</a> | <a href='/debug-session'>Refresh</a> | <a href='/logout'>Logout</a></p>";
+});
+
+// Route Direct Login - HAPUS SETELAH PERBAIKAN SELESAI
+Route::get('/direct-admin-login', function () {
+    try {
+        // Cari admin
+        $admin = \App\Models\Admin::where('username', 'admin')->first();
+
+        if (!$admin) {
+            return "Admin user not found!";
+        }
+
+        // Login admin
+        Auth::guard('admin')->login($admin, true);
+
+        // Set session
+        session([
+            'login_admin_' . md5('admin') => 1,
+            'role' => 'admin',
+            'role_akses' => 'admin',
+            'role_id' => $admin->role_id,
+            'user_id' => $admin->id,
+            'user_name' => $admin->nama ?? 'Administrator',
+            'username' => $admin->username
+        ]);
+
+        // Regenerate session
+        session()->regenerate();
+        session()->save();
+
+        return redirect()->route('admin.dashboard');
+    } catch (\Exception $e) {
+        return "Error: " . $e->getMessage();
+    }
+});
+
+Route::get('/debug-admin-dashboard', function () {
+    return "Halaman debug admin dashboard - Anda berhasil login";
+})->middleware(['auth:admin', 'checkRole:admin']);
+
+Route::get('/set-secure-admin-password', function () {
+    $admin = \App\Models\Admin::where('username', 'admin')->first();
+    if ($admin) {
+        // Gunakan password yang lebih kompleks
+        $securePassword = 'Admin_' . uniqid() . '_2025!';
+        $admin->password = Hash::make($securePassword);
+        $admin->save();
+        return "Admin password updated to: " . $securePassword;
+    }
+    return "Admin not found";
+});
+
+Route::get('/debug-admin-session', function () {
+    echo "<h1>Admin Session Debug</h1>";
+
+    echo "<h2>Auth Status:</h2>";
+    echo "Admin Authenticated: " . (Auth::guard('admin')->check() ? "Yes" : "No") . "<br>";
+
+    echo "<h2>Session Data:</h2>";
+    echo "<pre>";
+    print_r(session()->all());
+    echo "</pre>";
+
+    echo "<h2>Admin User:</h2>";
+    echo "<pre>";
+    print_r(Auth::guard('admin')->user());
+    echo "</pre>";
+
+    return;
+})->middleware(['web']);
+
+
+
+// TAMBAHKAN INI SEMENTARA UNTUK DEBUG
+Route::get('/debug-admin', function() {
+    return "Debug: Admin route working";
+});
+
+Route::get('/debug-admin-auth', function() {
+    if (Auth::guard('admin')->check()) {
+        return "Admin authenticated: " . Auth::guard('admin')->user()->username;
+    }
+    return "Admin NOT authenticated";
+})->middleware(['auth:admin']);
+
+// ===============================================================================
+// LOGOUT ROUTE
+// ===============================================================================
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

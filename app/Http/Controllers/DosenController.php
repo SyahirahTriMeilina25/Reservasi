@@ -160,7 +160,7 @@ class DosenController extends Controller
         }
     }
 
-    public function getDetailBimbingan($id)
+    public function getDetailBimbingan($id, $origin = null)
     {
         try {
             $usulan = DB::table('usulan_bimbingans as ub')
@@ -209,7 +209,8 @@ class DosenController extends Controller
                 'tanggal',
                 'waktuMulai',
                 'waktuSelesai',
-                'statusBadgeClass'
+                'statusBadgeClass',
+                'origin'
             ));
         } catch (\Exception $e) {
             Log::error('Error di getDetailBimbingan: ' . $e->getMessage());

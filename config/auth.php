@@ -40,6 +40,7 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
         'mahasiswa' => [
             'driver' => 'session',
             'provider' => 'mahasiswas',
@@ -48,6 +49,11 @@ return [
         'dosen' => [
             'driver' => 'session',
             'provider' => 'dosens',
+        ],
+
+        'admin' => [ // Tambahkan guard admin
+            'driver' => 'session',
+            'provider' => 'admins',
         ],
     ],
 
@@ -71,8 +77,9 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => App\Models\User::class,
         ],
+
         'mahasiswas' => [
             'driver' => 'eloquent',
             'model' => App\Models\Mahasiswa::class,
@@ -81,6 +88,11 @@ return [
         'dosens' => [
             'driver' => 'eloquent',
             'model' => App\Models\Dosen::class,
+        ],
+
+        'admins' => [ // Tambahkan provider admin
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
         ],
     ],
 

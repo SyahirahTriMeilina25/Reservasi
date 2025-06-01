@@ -10,8 +10,8 @@ class NoCacheMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // Periksa autentikasi terlebih dahulu (ketika halaman dimuat dari cache)
-        if (!Auth::guard('mahasiswa')->check() && !Auth::guard('dosen')->check()) {
+        // Perbaikan: Tambahkan pemeriksaan untuk admin juga
+        if (!Auth::guard('mahasiswa')->check() && !Auth::guard('dosen')->check() && !Auth::guard('admin')->check()) {
             return redirect()->route('login');
         }
 

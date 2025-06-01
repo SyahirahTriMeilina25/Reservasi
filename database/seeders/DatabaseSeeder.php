@@ -6,34 +6,27 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     *
-     * @return void
-     */
     public function run()
     {
         // Nonaktifkan foreign key checks sementara
         \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         
-        // Truncate semua table untuk memastikan data bersih
-        \DB::table('mahasiswas')->truncate();
-        \DB::table('dosens')->truncate();
-        \DB::table('konsentrasi')->truncate();
-        \DB::table('prodi')->truncate();
+        // Truncate table, tapi tidak termasuk mahasiswa dan dosen
         \DB::table('role')->truncate();
-
+        \DB::table('admin')->truncate();
+        
         // Aktifkan kembali foreign key checks
         \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-        // Jalankan seeders dalam urutan yang benar
+        // Jalankan seeder yang diperlukan saja
         $this->call([
             RoleSeeder::class,
-            KoordinatorProdiRoleSeeder::class,  // Pastikan ini dijalankan sebelum DosenSeeder
+            KoordinatorProdiRoleSeeder::class,
             ProdiSeeder::class,
             KonsentrasiSeeder::class,
-            DosenSeeder::class,
-            MahasiswaSeeder::class
+            // DosenSeeder::class, -- dihapus/di-comment
+            // MahasiswaSeeder::class, -- dihapus/di-comment
+            AdminSeeder::class,
         ]);
     }
 }

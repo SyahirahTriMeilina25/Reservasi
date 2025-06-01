@@ -1028,6 +1028,7 @@
                 </ul>
             </div>
 
+            {{-- tab usulan --}}
             <div class="card-body p-4">
                 <div class="tab-content" id="bimbinganTabContent">
                     @if ($activeTab == 'usulan')
@@ -1100,9 +1101,8 @@
                                                             </a>
                                                         @endif
                                                         <div class="action-icons">
-                                                            <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                title="Info">
+                                                            <a href="{{ route('dosen.detailbimbingan', ['id' => $item->id, 'origin' => 'usulan']) }}" 
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
                                                                 <i class="bi bi-info-circle"></i>
                                                             </a>
                                                         </div>
@@ -1119,7 +1119,8 @@
                             </div>
                         </div>
                     @endif
-
+                    
+                    {{-- tab jadwal --}}
                     @if ($activeTab == 'jadwal')
                         <div class="tab-pane fade show active" id="jadwal" role="tabpanel">
                             <!-- Google Calendar Integration -->
@@ -1227,10 +1228,9 @@
                                                                     <i class="bi bi-x-circle"></i>
                                                                 </button>
                                                                 <div class="action-icons">
-                                                                    <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                                                        class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                        title="Info">
-                                                                        <i class="bi bi-info-circle"></i>
+                                                                    <a href="{{ route('dosen.detailbimbingan', ['id' => $item->id, 'origin' => 'jadwal']) }}" 
+                                                                        class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                                         <i class="bi bi-info-circle"></i>
                                                                     </a>
                                                                 </div>
                                                             </div>
@@ -1290,6 +1290,7 @@
                         </div>
                     @endif
 
+                    {{-- tab riwayat --}}
                     @if ($activeTab == 'riwayat')
                         <div class="tab-pane fade show active" id="riwayat" role="tabpanel">
                             <div class="row mb-3 align-items-center">
@@ -1355,11 +1356,10 @@
                                                 }} text-white">{{ $item->status }}</td>
                                                 <td>
                                                     <div class="action-icons">
-                                                        <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                                            class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                            title="Info">
-                                                            <i class="bi bi-info-circle"></i>
-                                                        </a>
+                                                        <a href="{{ route('dosen.detailbimbingan', ['id' => $item->id, 'origin' => 'riwayat']) }}" 
+                                                            class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                             <i class="bi bi-info-circle"></i>
+                                                         </a>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1375,7 +1375,7 @@
                         </div>
                     @endif
 
-                    <!-- Di dalam div tab-content -->
+                    <!-- tab pengelola -->
                     @if ($activeTab == 'pengelola' && auth()->user()->isKoordinatorProdi())
                     <div class="tab-pane fade show active" id="pengelola" role="tabpanel">
                         <!-- Daftar Jadwal Dosen -->
@@ -1428,11 +1428,10 @@
                                                     <td>{{ $dosen->total_bimbingan_hari_ini }}</td>
                                                     <td>
                                                         <div class="action-icons">
-                                                            <a href="{{ route('dosen.detail', $dosen->nip) }}"
-                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                title="Info">
-                                                                <i class="bi bi-info-circle"></i>
-                                                            </a>
+                                                            <a href="{{ route('dosen.detail', ['nip' => $dosen->nip, 'origin' => 'pengelola']) }}" 
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                                 <i class="bi bi-info-circle"></i>
+                                                             </a>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -1538,11 +1537,10 @@
                                                     <td>{{ $dosen->total_bimbingan }}</td>
                                                     <td>
                                                         <div class="action-icons">
-                                                            <a href="{{ route('dosen.riwayat.detail', $dosen->nip) }}"
-                                                                class="action-icon info-icon" data-bs-toggle="tooltip"
-                                                                title="Info">
-                                                                <i class="bi bi-info-circle"></i>
-                                                            </a>
+                                                            <a href="{{ route('dosen.riwayat.detail', ['nip' => $dosen->nip, 'origin' => 'pengelola']) }}" 
+                                                                class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                                 <i class="bi bi-info-circle"></i>
+                                                             </a>
                                                         </div>
                                                     </td>
                                                 </tr>
