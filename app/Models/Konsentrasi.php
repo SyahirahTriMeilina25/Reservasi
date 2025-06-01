@@ -14,4 +14,8 @@ class Konsentrasi extends Model
         'konsentrasi_id',
         'nama_konsentrasi'
     ];
+    public function mahasiswas()
+    {
+        return $this->hasMany(Mahasiswa::class, 'konsentrasi_id');
+    }
 }

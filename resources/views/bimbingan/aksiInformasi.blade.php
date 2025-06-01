@@ -22,17 +22,41 @@
     <div class="container mt-5">
         <h1 class="mb-2 gradient-text fw-bold">Detail Mahasiswa</h1>
         <hr>
-        <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center">
-            @if (auth()->guard('mahasiswa')->check())
-                <a href="{{ route('mahasiswa.usulanbimbingan') }}">
+        <div class="card-header border-0 pb-0">
+            <div class="d-flex">
+                @php
+                    $backRoute = '#';
+                    if (auth()->guard('mahasiswa')->check()) {
+                        $backRoute = match($origin ?? 'usulan') {
+                            'usulan' => route('mahasiswa.usulanbimbingan', ['tab' => 'usulan']),
+                            'jadwal' => route('mahasiswa.usulanbimbingan', ['tab' => 'jadwal']),
+                            'riwayat' => route('mahasiswa.usulanbimbingan', ['tab' => 'riwayat']),
+                            'detaildaftar' => url()->previous(),
+                            default => route('mahasiswa.usulanbimbingan')
+                        };
+                    } elseif (auth()->guard('dosen')->check()) {
+                        $backRoute = match($origin ?? 'usulan') {
+                            'usulan' => route('dosen.persetujuan', ['tab' => 'usulan']),
+                            'jadwal' => route('dosen.persetujuan', ['tab' => 'jadwal']),
+                            'riwayat' => route('dosen.persetujuan', ['tab' => 'riwayat']),
+                            'pengelola' => route('dosen.persetujuan', ['tab' => 'pengelola']),
+                            'riwayatdetail' => url()->previous(),
+                            'detaildaftar' => url()->previous(),
+                            default => route('dosen.persetujuan')
+                        };
+                    } elseif (auth()->guard('admin')->check()) {
+                        $backRoute = match($origin ?? 'dashboard') {
+                            'detaildosen' => url()->previous(),
+                            'detailriwayatdosen' => url()->previous(),
+                            default => route('admin.dashboard')
+                        };
+                    }
+                @endphp
+                <a href="{{ $backRoute }}" class="btn btn-gradient mb-3">
                     <i class="fas fa-arrow-left me-2"></i> Kembali
                 </a>
-            @elseif (auth()->guard('dosen')->check())
-                <a href="{{ route('dosen.persetujuan') }}">
-                    <i class="fas fa-arrow-left me-2"></i> Kembali
-                </a>
-            @endif
-        </button>
+            </div>
+        </div>
 
         <div class="container">
             <div class="row">

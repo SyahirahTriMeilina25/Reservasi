@@ -13,8 +13,11 @@ class Dosen extends Authenticatable
     use HasGoogleCalendar;
     use HasFcmNotification;
     use HasFactory, Notifiable;
+    
+    protected $table = 'dosens'; // Pastikan ini sesuai dengan nama tabel di database
     protected $primaryKey = 'nip';
     protected $keyType = 'string';
+    public $incrementing = false; 
 
     protected $fillable = [
         'nip',
@@ -22,7 +25,7 @@ class Dosen extends Authenticatable
         'nama_singkat',
         'email',
         'password',
-        'foto',
+        'foto', // Kolom ini bisa tetap ada untuk kompatibilitas, tapi tidak digunakan lagi
         'prodi_id',
         'role_id',
         'google_access_token',
@@ -42,6 +45,7 @@ class Dosen extends Authenticatable
         'google_token_expires_in' => 'integer',
     ];
 
+    // ======================= RELASI YANG SUDAH ADA =======================
     public function role()
     {
         return $this->belongsTo(Role::class,'role_id', 'id');
@@ -52,21 +56,115 @@ class Dosen extends Authenticatable
         return $this->belongsTo(Prodi::class);
     }
 
-    public function hasRole($roleName)
+    // ======================= RELASI FOTO BARU (BASE64) =======================
+    /**
+     * Relasi dengan tabel user_photos untuk sistem foto base64
+     */
+    public function foto()
     {
-        return $this->role->name === $roleName;
+        return $this->hasOne(UserPhoto::class, 'user_id', 'nip')
+                    ->where('user_type', 'dosen');
     }
 
-    public function getFotoUrlAttribute()
+    // ======================= RELASI BIMBINGAN (TAMBAHAN) =======================
+    /**
+     * Relasi dengan bimbingan hari ini
+     */
+    public function bimbinganHariIni()
     {
-        if ($this->foto) {
-            return asset('storage/foto_profil/' . $this->foto);
-        }
-        return asset('images/default-avatar.png');
+        // Sesuaikan dengan nama tabel bimbingan yang Anda gunakan
+        return $this->hasMany(UsulanBimbingan::class, 'nip', 'nip')
+                    ->whereDate('tanggal', today())
+                    ->where('status', 'DISETUJUI');
+    }
+
+    /**
+     * Relasi dengan semua bimbingan
+     */
+    public function bimbingan()
+    {
+        // Sesuaikan dengan nama tabel bimbingan yang Anda gunakan
+        return $this->hasMany(UsulanBimbingan::class, 'nip', 'nip');
+    }
+
+    // ======================= METHODS YANG SUDAH ADA =======================
+    public function hasRole($roleName)
+    {
+        return $this->role && $this->role->role_akses === $roleName;
     }
 
     public function isKoordinatorProdi()
     {
         return $this->role && $this->role->role_akses === 'koordinator_prodi';
+    }
+
+    // ======================= ACCESSOR FOTO (DIPERBARUI) =======================
+    /**
+     * Accessor untuk foto URL - menggunakan sistem base64 yang baru
+     * Jika ada foto di tabel user_photos, gunakan itu
+     * Jika tidak ada, fallback ke sistem lama atau default avatar
+     */
+    public function getFotoUrlAttribute()
+    {
+        // Prioritas 1: Cek foto dari tabel user_photos (sistem baru base64)
+        $photoRecord = $this->foto;
+        if ($photoRecord && $photoRecord->foto_base64) {
+            return 'data:' . $photoRecord->mime_type . ';base64,' . $photoRecord->foto_base64;
+        }
+
+        // Prioritas 2: Fallback ke sistem lama jika masih ada
+        if ($this->attributes['foto'] ?? null) {
+            $oldPhotoPath = 'storage/foto_profil/' . $this->attributes['foto'];
+            if (file_exists(public_path($oldPhotoPath))) {
+                return asset($oldPhotoPath);
+            }
+        }
+
+        // Prioritas 3: Default avatar untuk dosen
+        return UserPhoto::getDefaultAvatar('dosen');
+    }
+
+    // ======================= HELPER METHODS UNTUK FOTO =======================
+    /**
+     * Cek apakah dosen memiliki foto
+     */
+    public function hasFoto()
+    {
+        $photoRecord = $this->foto;
+        return $photoRecord && $photoRecord->foto_base64;
+    }
+
+    /**
+     * Get informasi foto
+     */
+    public function getFotoInfo()
+    {
+        $photoRecord = $this->foto;
+        if ($photoRecord) {
+            return [
+                'original_name' => $photoRecord->original_name,
+                'file_size' => $photoRecord->file_size,
+                'mime_type' => $photoRecord->mime_type,
+                'size_formatted' => number_format(($photoRecord->file_size ?? 0) / 1024, 1) . ' KB'
+            ];
+        }
+        return null;
+    }
+
+    // ======================= METHODS TAMBAHAN UNTUK DOSEN =======================
+    /**
+     * Get total bimbingan hari ini
+     */
+    public function getTotalBimbinganHariIniAttribute()
+    {
+        return $this->bimbinganHariIni()->count();
+    }
+
+    /**
+     * Get total semua bimbingan
+     */
+    public function getTotalBimbinganAttribute()
+    {
+        return $this->bimbingan()->count();
     }
 }

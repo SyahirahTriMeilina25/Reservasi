@@ -1,27 +1,131 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Daftar Bimbingan Dosen')
+@section('title', 'Detail Dosen')
 
 @push('styles')
 <style>
-    form .form-label {
-        font-weight: bold;
-    }
-    
-    select.form-select option {
-        color: black;
-        font-weight: bold;
+    /* Card Informasi Dosen yang Diperbaiki */
+    .info-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.1);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        position: relative;
+        margin-bottom: 2rem;
     }
 
-    select.form-select option:disabled {
-        color: #6c757d;
+    .info-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #4f46e5, #7c3aed, #ec4899, #f59e0b);
+        background-size: 200% 100%;
+        animation: gradientMove 3s ease-in-out infinite;
     }
 
+    @keyframes gradientMove {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .info-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(79, 70, 229, 0.15);
+    }
+
+    .info-card .card-body {
+        padding: 2rem;
+        background: white;
+        border-radius: 0 0 16px 16px;
+    }
+
+    .info-card h5 {
+        color: #4f46e5;
+        font-weight: 700;
+        font-size: 1.3rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 10px;
+        border-bottom: 2px solid rgba(79, 70, 229, 0.1);
+    }
+
+    .info-card h5 i {
+        color: #7c3aed;
+        background: rgba(124, 58, 237, 0.1);
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 1.1rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border-radius: 10px;
+        border-left: 4px solid #4f46e5;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .info-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(79, 70, 229, 0.1), transparent);
+        transition: width 0.3s ease;
+    }
+
+    .info-item:hover::before {
+        width: 100%;
+    }
+
+    .info-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+        border-left-color: #7c3aed;
+    }
+
+    .info-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .info-label {
+        font-weight: 700;
+        color: #374151;
+        min-width: 150px;
+        flex-shrink: 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .info-value {
+        color: #1e293b;
+        font-weight: 600;
+        margin-left: 15px;
+        position: relative;
+        z-index: 1;
+        flex: 1;
+    }
+
+    /* Action Icon Styling */
     .action-icons {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-        }
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+    }
 
     .action-icon {
         padding: 5px;
@@ -51,152 +155,161 @@
 
     /* Container untuk search box */
     .search-container {
-    position: relative;
-    width: 100%;
-    transition: all 0.3s ease;
-    margin-bottom: 0;
-    max-width: 300px; /* Batasi lebar maksimal */
-    margin-left: auto; /* Posisikan di kanan */
+        position: relative;
+        width: 100%;
+        transition: all 0.3s ease;
+        margin-bottom: 0;
+        max-width: 300px; /* Batasi lebar maksimal */
+        margin-left: auto; /* Posisikan di kanan */
     }
 
     @media (max-width: 768px) {
-    .search-container {
-        max-width: 100%; /* Pada layar kecil, biarkan penuh */
-    }
+        .search-container {
+            max-width: 100%; /* Pada layar kecil, biarkan penuh */
+        }
     }
 
     /* Input search box */
     .search-box {
-    width: 100%;
-    background-color: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 50px;
-    padding: 10px 40px 10px 16px;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-    font-size: 14px;
-    color: #495057;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        width: 100%;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 50px;
+        padding: 10px 40px 10px 16px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        font-size: 14px;
+        color: #495057;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
     .search-box:focus {
-    background-color: #fff;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
-    outline: none;
+        background-color: #fff;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+        outline: none;
     }
 
     /* Placeholder styling */
     .search-box::placeholder {
-    color: #adb5bd;
-    transition: opacity 0.2s;
+        color: #adb5bd;
+        transition: opacity 0.2s;
     }
 
     .search-box:focus::placeholder {
-    opacity: 0.5;
+        opacity: 0.5;
     }
 
     /* Icon search */
     .search-icon {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-    transition: all 0.3s ease;
-    pointer-events: none;
-    z-index: 1;
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        z-index: 1;
     }
 
     /* Aturan baru: sembunyikan icon search ketika ada input */
     .search-box:not(:placeholder-shown) + .search-icon {
-    opacity: 0;
-    visibility: hidden;
+        opacity: 0;
+        visibility: hidden;
     }
 
     /* Clear button */
     .search-clear {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #6c757d;
-    cursor: pointer;
-    display: none; /* Hidden by default, will be shown via JS */
-    font-size: 14px;
-    background: #e9ecef;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    align-items: center; /* For flex display */
-    justify-content: center; /* For flex display */
-    z-index: 2;
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        cursor: pointer;
+        display: none; /* Hidden by default, will be shown via JS */
+        font-size: 14px;
+        background: #e9ecef;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        align-items: center; /* For flex display */
+        justify-content: center; /* For flex display */
+        z-index: 2;
     }
 
     .search-clear:hover {
-    background-color: #dc3545;
-    color: white;
-    transform: translateY(-50%) scale(1.1);
+        background-color: #dc3545;
+        color: white;
+        transform: translateY(-50%) scale(1.1);
     }
 
     /* Styling untuk text yang di-highlight */
     .highlight {
-    background-color: #FFC107 !important;
-    color: #000 !important;
-    font-weight: bold !important;
-    padding: 0 3px !important;
-    border-radius: 2px !important;
-    display: inline-block !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+        background-color: #FFC107 !important;
+        color: #000 !important;
+        font-weight: bold !important;
+        padding: 0 3px !important;
+        border-radius: 2px !important;
+        display: inline-block !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     }
 
     @keyframes pulse {
-    0% { background-color: rgba(255, 193, 7, 0.3); }
-    50% { background-color: rgba(255, 193, 7, 0.6); }
-    100% { background-color: rgba(255, 193, 7, 0.3); }
+        0% { background-color: rgba(255, 193, 7, 0.3); }
+        50% { background-color: rgba(255, 193, 7, 0.6); }
+        100% { background-color: rgba(255, 193, 7, 0.3); }
     }
 
     /* Styling untuk baris "tidak ada hasil" */
     .no-results-row td {
-    padding: 16px !important;
-    background-color: #f8f9fa !important;
-    color: #6c757d;
-    font-style: italic;
+        padding: 16px !important;
+        background-color: #f8f9fa !important;
+        color: #6c757d;
+        font-style: italic;
     }
 
     .no-results-row i {
-    margin-right: 8px;
-    color: #6c757d;
+        margin-right: 8px;
+        color: #6c757d;
     }
 
     /* Responsif untuk layar sedang */
     @media (max-width: 992px) {
-    .row .col-md-6:last-child {
-        margin-top: 15px;
-    }
-    
-    .search-container {
-        max-width: 100%;
-    }
+        .row .col-md-6:last-child {
+            margin-top: 15px;
+        }
+        
+        .search-container {
+            max-width: 100%;
+        }
     }
 
     /* Responsif untuk layar kecil/mobile */
     @media (max-width: 576px) {
-    .search-box {
-        padding: 8px 36px 8px 14px;
-        font-size: 13px;
+        .search-box {
+            padding: 8px 36px 8px 14px;
+            font-size: 13px;
+        }
+        
+        .search-icon {
+            right: 14px;
+            font-size: 14px;
+        }
+        
+        .search-clear {
+            width: 18px;
+            height: 18px;
+            font-size: 12px;
+            right: 14px;
+        }
     }
-    
-    .search-icon {
-        right: 14px;
-        font-size: 14px;
-    }
-    
-    .search-clear {
-        width: 18px;
-        height: 18px;
-        font-size: 12px;
-        right: 14px;
-    }
+
+    .badge-status {
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     /* Pagination styles */
@@ -267,32 +380,117 @@
             font-size: 0.9rem;
         }
     }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .info-card .card-body {
+            padding: 1.5rem;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+        
+        .info-label {
+            min-width: auto;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        
+        .info-value {
+            margin-left: 0;
+            width: 100%;
+        }
+    }
 </style>
 @endpush
 
 @section('content')
 <div class="container mt-5">
-    <h1 class="mb-2 gradient-text fw-bold">Detail Daftar Bimbingan Dosen</h1>
+    <h1 class="mb-2 gradient-text fw-bold">Detail Dosen</h1>
     <hr>
+    
+    {{-- Tombol Kembali - Cek route yang tersedia --}}
+    @if(Route::has('admin.dashboard'))
     <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center">
-        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}">
-            <i class="bi bi-arrow-left me-2"></i> Kembali
+        <a href="{{ route('admin.dashboard') }}">
+            <i class="bi bi-arrow-left me-2"></i>Kembali
         </a>
     </button>
+    @elseif(isset($origin) && $origin == 'pengelola')
+    <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center">
+        <a href="{{ route('dosen.persetujuan', ['tab' => 'pengelola']) }}">
+            <i class="bi bi-arrow-left me-2"></i>Kembali
+        </a>
+    </button>
+    @else
+    <button class="btn btn-gradient mb-4 mt-2 d-flex align-items-center justify-content-center" onclick="window.history.back()">
+        <i class="bi bi-arrow-left me-2"></i>Kembali
+    </button>
+    @endif
 
+    @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    @endif
+
+    <!-- Card Informasi Dosen yang Diperbaiki -->
+    <div class="card info-card">
+        <div class="card-body">
+            <h5 class="mb-3 fw-bold">
+                <i class="bi bi-person-badge me-2"></i>Informasi Dosen
+            </h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">NIP:</span>
+                        <span class="info-value">{{ $dosen->nip ?? 'Tidak tersedia' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Nama:</span>
+                        <span class="info-value">{{ $dosen->nama ?? 'Tidak tersedia' }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <span class="info-label">Email:</span>
+                        <span class="info-value">{{ $dosen->email ?? 'Tidak tersedia' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Program Studi:</span>
+                        <span class="info-value">{{ $dosen->prodi->nama_prodi ?? 'Tidak tersedia' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Jadwal Bimbingan Hari Ini -->
     <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
         <div class="card-body p-4">
-            <h5 class="mb-3 fw-bold">Data Bimbingan {{ $dosen->nama }}</h5>
+            <h5 class="mb-3 fw-bold"><i class="bi bi-calendar-check me-2"></i>Jadwal Bimbingan Hari Ini</h5>
             <hr class="mt-0 mb-3">
+            
             <div class="row mb-3 align-items-center">
                 <div class="col-lg-6 col-md-6">
                     <div class="d-flex align-items-center">
                         <label class="me-2">Tampilkan</label>
                         <select class="form-select form-select-sm w-auto" id="show-entries">
-                            <option value="50" {{ request('per_page', 50) == 50 ? 'selected' : '' }}>50</option>
+                            <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10</option>
+                            <option value="25" {{ request('per_page') == 25 ? 'selected' : '' }}>25</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>50</option>
                             <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>100</option>
-                            <option value="150" {{ request('per_page') == 150 ? 'selected' : '' }}>150</option>
-                            <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>200</option>
                         </select>
                         <label class="ms-2">entries</label>
                     </div>
@@ -305,12 +503,12 @@
                     </div>
                 </div>
             </div>
-    
+            
             <div class="table-responsive">
                 <table class="table table-striped table-bordered align-middle">
                     <thead class="text-center">
                         <tr>
-                            <th scope="col" class="text-center align-middle">No.</th>
+                            <th scope="col" class="text-center align-middle">No</th>
                             <th scope="col" class="text-center align-middle">NIM</th>
                             <th scope="col" class="text-center align-middle">Nama</th>
                             <th scope="col" class="text-center align-middle">Jenis Bimbingan</th>
@@ -322,60 +520,65 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($bimbingan as $index => $item)
-                        <tr class="text-center">
-                            <td>{{ ($bimbingan->currentPage() - 1) * $bimbingan->perPage() + $loop->iteration }}</td>
-                            <td>{{ $item->nim }}</td>
-                            <td>{{ $item->mahasiswa_nama }}</td>
-                            <td>{{ $item->jenis_bimbingan }}</td>
-                            <td>{{ \Carbon\Carbon::parse($item->tanggal)->isoFormat('D MMMM Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($item->waktu_mulai)->format('H:i') }} - 
-                                {{ \Carbon\Carbon::parse($item->waktu_selesai)->format('H:i') }}</td>
-                            <td>{{ $item->lokasi ?? '-' }}</td>
-                            <td class="fw-bold {{ 
-                                $item->status === 'DISETUJUI' ? 'bg-success' : (
-                                    $item->status === 'DITOLAK' ? 'bg-danger' : (
-                                        $item->status === 'DIBATALKAN' ? 'bg-secondary' : (
-                                            $item->status === 'SELESAI' ? 'bg-primary' : 'bg-warning'
-                                        )
-                                    )
-                                ) 
-                            }} text-white">{{ $item->status }}</td>
-                            <td>
-                                <div class="action-icons">
-                                    <a href="{{ route('dosen.detailbimbingan', $item->id) }}"
-                                        class="action-icon info-icon" data-bs-toggle="tooltip"
-                                        title="Info">
-                                        <i class="bi bi-info-circle"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="9" class="text-center">Belum ada data bimbingan</td>
-                        </tr>
-                        @endforelse
+                        @if(isset($dosen->bimbinganHariIni) && count($dosen->bimbinganHariIni) > 0)
+                            @foreach($dosen->bimbinganHariIni as $index => $bimbingan)
+                                <tr class="text-center">
+                                    <td>{{ ($dosen->bimbinganHariIni->currentPage() - 1) * $dosen->bimbinganHariIni->perPage() + $loop->iteration }}</td>
+                                    <td>{{ $bimbingan->nim ?? 'Tidak tersedia' }}</td>
+                                    <td>{{ $bimbingan->mahasiswa_nama ?? 'Tidak tersedia' }}</td>
+                                    <td>{{ $bimbingan->jenis_bimbingan ?? 'Tidak tersedia' }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($bimbingan->tanggal ?? date('Y-m-d'))->isoFormat('D MMMM Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($bimbingan->waktu_mulai)->format('H:i') }} - 
+                                        {{ \Carbon\Carbon::parse($bimbingan->waktu_selesai)->format('H:i') }}</td>
+                                    <td>{{ $bimbingan->lokasi ?? 'Lt 2 jurusan' }}</td>
+                                    <td class="fw-bold {{ 
+                                        ($bimbingan->status ?? '') === 'DISETUJUI' ? 'bg-success' : (
+                                            ($bimbingan->status ?? '') === 'DITOLAK' ? 'bg-danger' : (
+                                                ($bimbingan->status ?? '') === 'DIBATALKAN' ? 'bg-secondary' : (
+                                                    ($bimbingan->status ?? '') === 'SELESAI' ? 'bg-primary' : 'bg-warning'
+                                                )
+                                            )
+                                        ) 
+                                    }} text-white">{{ $bimbingan->status ?? 'MENUNGGU' }}
+                                    </td>
+                                    <td>
+                                        <div class="action-icons">
+                                            <a href="{{ route('admin.getDetailBimbingan', ['id' => $bimbingan->id ?? '', 'origin' => 'detaildosen']) }}" 
+                                                class="action-icon info-icon" data-bs-toggle="tooltip" title="Info">
+                                                <i class="bi bi-info-circle"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <i class="bi bi-calendar-x me-2 text-muted"></i>
+                                    <span class="text-muted">Tidak ada jadwal bimbingan hari ini</span>
+                                </td>
+                            </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
-    
-            @if($bimbingan instanceof \Illuminate\Pagination\LengthAwarePaginator)
+            
+            @if(isset($dosen->bimbinganHariIni) && $dosen->bimbinganHariIni instanceof \Illuminate\Pagination\LengthAwarePaginator)
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center mt-3">
                 <p class="mb-3 mb-lg-0">
-                    Menampilkan {{ $bimbingan->firstItem() ?? 0 }} sampai {{ $bimbingan->lastItem() ?? 0 }} 
-                    dari {{ $bimbingan->total() ?? 0 }} entri
+                    Menampilkan {{ $dosen->bimbinganHariIni->firstItem() ?? 0 }} sampai {{ $dosen->bimbinganHariIni->lastItem() ?? 0 }} 
+                    dari {{ $dosen->bimbinganHariIni->total() ?? 0 }} entri
                 </p>
                 <nav aria-label="Page navigation">
                     <ul class="pagination mb-0 justify-content-center justify-content-lg-end">
                         {{-- Previous Page Link --}}
-                        @if ($bimbingan->onFirstPage())
+                        @if ($dosen->bimbinganHariIni->onFirstPage())
                             <li class="page-item disabled">
                                 <span class="page-link">« Sebelumnya</span>
                             </li>
                         @else
                             <li class="page-item">
-                                <a class="page-link" href="{{ $bimbingan->previousPageUrl() }}" rel="prev">« Sebelumnya</a>
+                                <a class="page-link" href="{{ $dosen->bimbinganHariIni->previousPageUrl() }}" rel="prev">« Sebelumnya</a>
                             </li>
                         @endif
 
@@ -384,7 +587,7 @@
                         $urlParams = request()->except('page');
                         @endphp
 
-                        @foreach ($bimbingan->getUrlRange(1, $bimbingan->lastPage()) as $page => $url)
+                        @foreach ($dosen->bimbinganHariIni->getUrlRange(1, $dosen->bimbinganHariIni->lastPage()) as $page => $url)
                             @php
                             $currentUrl = $url;
                             foreach($urlParams as $key => $value) {
@@ -392,7 +595,7 @@
                             }
                             @endphp
                             
-                            @if ($page == $bimbingan->currentPage())
+                            @if ($page == $dosen->bimbinganHariIni->currentPage())
                                 <li class="page-item active">
                                     <span class="page-link">{{ $page }}</span>
                                 </li>
@@ -404,9 +607,9 @@
                         @endforeach
 
                         {{-- Next Page Link --}}
-                        @if ($bimbingan->hasMorePages())
+                        @if ($dosen->bimbinganHariIni->hasMorePages())
                             <li class="page-item">
-                                <a class="page-link" href="{{ $bimbingan->nextPageUrl() }}" rel="next">Selanjutnya »</a>
+                                <a class="page-link" href="{{ $dosen->bimbinganHariIni->nextPageUrl() }}" rel="next">Selanjutnya »</a>
                             </li>
                         @else
                             <li class="page-item disabled">
@@ -489,7 +692,7 @@
                                 }
                                 
                                 // Escape karakter khusus regex
-                                const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\                                    <td>{{ \Carbon\Carbon::parse($bimbingan->tanggal ?? date('Y-m-d'))->isoFormat('D MMMM Y') }}</td>');
                                 
                                 // Highlight kata yang cocok
                                 const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
@@ -580,6 +783,14 @@
                 searchInput.focus();
             });
         }
+        
+        // Initialize tooltips jika Bootstrap 5 digunakan
+        if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        }
     });
-    </script>
+</script>
 @endpush
