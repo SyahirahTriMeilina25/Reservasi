@@ -296,429 +296,495 @@ class DosenController extends Controller
      * Menyetujui usulan bimbingan dan mengirim undangan ke Google Calendar
      */
     public function terima(Request $request, $id)
-    {
-        try {
-            Log::info('Memulai terima usulan dengan ID: ' . $id, [
-                'request' => $request->all()
-            ]);
+{
+    try {
+        Log::info('Memulai terima usulan dengan ID: ' . $id, [
+            'request' => $request->all()
+        ]);
 
-            $usulan = UsulanBimbingan::with(['mahasiswa', 'dosen'])->findOrFail($id);
+        $usulan = UsulanBimbingan::with(['mahasiswa', 'dosen'])->findOrFail($id);
 
-            // Cek apakah usulan sudah disetujui sebelumnya
-            $existingApproval = UsulanBimbingan::where('nim', $usulan->nim)
-                ->where('event_id', $usulan->event_id)
-                ->where('status', 'DISETUJUI')
-                ->first();
+        // Cek apakah usulan sudah disetujui sebelumnya
+        $existingApproval = UsulanBimbingan::where('nim', $usulan->nim)
+            ->where('event_id', $usulan->event_id)
+            ->where('status', 'DISETUJUI')
+            ->first();
 
-            if ($existingApproval) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Usulan bimbingan ini sudah disetujui sebelumnya'
-                ], 400);
-            }
+        if ($existingApproval) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Usulan bimbingan ini sudah disetujui sebelumnya'
+            ], 400);
+        }
 
-            // Temukan jadwal
-            $jadwal = JadwalBimbingan::where('event_id', $usulan->event_id)->first();
+        // Temukan jadwal
+        $jadwal = JadwalBimbingan::where('event_id', $usulan->event_id)->first();
 
-            if (!$jadwal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Jadwal bimbingan tidak ditemukan'
-                ], 404);
-            }
+        if (!$jadwal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal bimbingan tidak ditemukan'
+            ], 404);
+        }
 
-            // Cek apakah waktu jadwal sudah lewat
-            $now = Carbon::now('Asia/Jakarta');
-            $jadwalMulai = Carbon::parse($jadwal->waktu_mulai)->setTimezone('Asia/Jakarta');
+        // Cek apakah waktu jadwal sudah lewat
+        $now = Carbon::now('Asia/Jakarta');
+        $jadwalMulai = Carbon::parse($jadwal->waktu_mulai)->setTimezone('Asia/Jakarta');
 
-            if ($jadwalMulai->isPast()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Jadwal bimbingan tidak dapat disetujui karena waktu sudah lewat'
-                ], 400);
-            }
+        if ($jadwalMulai->isPast()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal bimbingan tidak dapat disetujui karena waktu sudah lewat'
+            ], 400);
+        }
 
-            DB::beginTransaction();
+        DB::beginTransaction();
 
-            // Update status di database
-            if ($usulan->setujui($request->lokasi)) {
+        // Update status di database
+        if ($usulan->setujui($request->lokasi)) {
+            try {
+                // --- LANGKAH 1: UPDATE EVENT DOSEN DAN TAMBAHKAN MAHASISWA SEBAGAI ATTENDEE ---
+
+                // Validasi koneksi Google Calendar
+                if (!$this->googleCalendarController->validateAndRefreshToken()) {
+                    throw new \Exception('Tidak dapat terhubung ke Google Calendar. Silahkan hubungkan ulang.');
+                }
+
+                // Dapatkan ID event di Google Calendar dosen
+                $dosenEventId = $usulan->event_id;
+
+                // Log untuk debug
+                Log::info('Mendapatkan event dari Google Calendar dengan ID: ' . $dosenEventId);
+
+                // Inisialisasi service Google Calendar untuk dosen
+                $service = new \Google_Service_Calendar($this->googleCalendarController->getClient());
+
                 try {
-                    // --- LANGKAH 1: UPDATE EVENT DOSEN DAN TAMBAHKAN MAHASISWA SEBAGAI ATTENDEE ---
+                    // Dapatkan event dosen langsung dengan Google API
+                    $eventDosen = $service->events->get('primary', $dosenEventId);
 
-                    // Validasi koneksi Google Calendar
-                    if (!$this->googleCalendarController->validateAndRefreshToken()) {
-                        throw new \Exception('Tidak dapat terhubung ke Google Calendar. Silahkan hubungkan ulang.');
+                    // Tambahkan mahasiswa sebagai attendee
+                    $attendees = $eventDosen->getAttendees() ?: [];
+
+                    // Validasi email mahasiswa
+                    $mahasiswaEmail = $usulan->mahasiswa->email;
+                    if (!filter_var($mahasiswaEmail, FILTER_VALIDATE_EMAIL)) {
+                        Log::warning('Email mahasiswa tidak valid: ' . $mahasiswaEmail);
+                        throw new \Exception('Email mahasiswa tidak valid');
                     }
 
-                    // Dapatkan ID event di Google Calendar dosen
-                    $dosenEventId = $usulan->event_id;
+                    // Cek apakah mahasiswa sudah ada di daftar attendee
+                    $emailExists = false;
+                    foreach ($attendees as $attendee) {
+                        if ($attendee->getEmail() === $mahasiswaEmail) {
+                            $emailExists = true;
+                            break;
+                        }
+                    }
 
-                    // Log untuk debug
-                    Log::info('Mendapatkan event dari Google Calendar dengan ID: ' . $dosenEventId);
-
-                    // Inisialisasi service Google Calendar untuk dosen
-                    $service = new \Google_Service_Calendar($this->googleCalendarController->getClient());
-
-                    try {
-                        // Dapatkan event dosen langsung dengan Google API
-                        $eventDosen = $service->events->get('primary', $dosenEventId);
-
+                    if (!$emailExists) {
                         // Tambahkan mahasiswa sebagai attendee
-                        $attendees = $eventDosen->getAttendees() ?: [];
+                        $attendee = new \Google_Service_Calendar_EventAttendee();
+                        $attendee->setEmail($mahasiswaEmail);
+                        $attendee->setDisplayName($usulan->mahasiswa->nama); // Tambahkan nama mahasiswa untuk tampilan lebih baik
+                        $attendee->setResponseStatus('needsAction'); // Status pending agar ada notifikasi
+                        $attendees[] = $attendee;
 
-                        // Validasi email mahasiswa
-                        $mahasiswaEmail = $usulan->mahasiswa->email;
-                        if (!filter_var($mahasiswaEmail, FILTER_VALIDATE_EMAIL)) {
-                            Log::warning('Email mahasiswa tidak valid: ' . $mahasiswaEmail);
-                            throw new \Exception('Email mahasiswa tidak valid');
-                        }
+                        // Update daftar attendee
+                        $eventDosen->setAttendees($attendees);
 
-                        // Cek apakah mahasiswa sudah ada di daftar attendee
-                        $emailExists = false;
-                        foreach ($attendees as $attendee) {
-                            if ($attendee->getEmail() === $mahasiswaEmail) {
-                                $emailExists = true;
-                                break;
-                            }
-                        }
+                        // Buat deskripsi yang informatif dan dinamis
+                        $existingDescription = $eventDosen->getDescription() ?: '';
 
-                        if (!$emailExists) {
-                            // Tambahkan mahasiswa sebagai attendee
-                            $attendee = new \Google_Service_Calendar_EventAttendee();
-                            $attendee->setEmail($mahasiswaEmail);
-                            $attendee->setDisplayName($usulan->mahasiswa->nama); // Tambahkan nama mahasiswa untuk tampilan lebih baik
-                            $attendee->setResponseStatus('needsAction'); // Status pending agar ada notifikasi
-                            $attendees[] = $attendee;
+                        // Hanya tambahkan info mahasiswa baru jika belum ada
+                        if (strpos($existingDescription, "NIM: {$usulan->nim}") === false) {
+                            // Format deskripsi yang lebih terstruktur
+                            $attendeeInfo = "\n• Mahasiswa: {$usulan->mahasiswa->nama} (NIM: {$usulan->nim})" .
+                                "\n  Jenis: " . ucfirst($usulan->jenis_bimbingan) .
+                                "\n  Lokasi: {$request->lokasi}" .
+                                "\n  Nomor Antrian: {$usulan->nomor_antrian}\n";
 
-                            // Update daftar attendee
-                            $eventDosen->setAttendees($attendees);
+                            // Update deskripsi dengan menambahkan info mahasiswa
+                            $newDescription = $existingDescription;
 
-                            // Buat deskripsi yang informatif dan dinamis
-                            $existingDescription = $eventDosen->getDescription() ?: '';
-
-                            // Hanya tambahkan info mahasiswa baru jika belum ada
-                            if (strpos($existingDescription, "NIM: {$usulan->nim}") === false) {
-                                // Format deskripsi yang lebih terstruktur
-                                $attendeeInfo = "\n• Mahasiswa: {$usulan->mahasiswa->nama} (NIM: {$usulan->nim})" .
-                                    "\n  Jenis: " . ucfirst($usulan->jenis_bimbingan) .
-                                    "\n  Lokasi: {$request->lokasi}" .
-                                    "\n  Nomor Antrian: {$usulan->nomor_antrian}\n";
-
-                                // Update deskripsi dengan menambahkan info mahasiswa
-                                $newDescription = $existingDescription;
-
-                                // Tambahkan header "Daftar Mahasiswa" jika belum ada
-                                if (strpos($existingDescription, "DAFTAR MAHASISWA BIMBINGAN:") === false) {
-                                    $newDescription .= "\n\n==== DAFTAR MAHASISWA BIMBINGAN: ====";
-                                }
-
-                                $newDescription .= $attendeeInfo;
-                                $eventDosen->setDescription($newDescription);
+                            // Tambahkan header "Daftar Mahasiswa" jika belum ada
+                            if (strpos($existingDescription, "DAFTAR MAHASISWA BIMBINGAN:") === false) {
+                                $newDescription .= "\n\n==== DAFTAR MAHASISWA BIMBINGAN: ====";
                             }
 
-                            // Tambahkan logging untuk melacak parameter sendUpdates
-                            Log::info('Updating dosen event with sendUpdates=all parameter', [
-                                'event_id' => $eventDosen->getId(),
-                                'attendees_count' => count($attendees)
-                            ]);
+                            $newDescription .= $attendeeInfo;
+                            $eventDosen->setDescription($newDescription);
+                        }
 
-                            // PERBAIKAN 1: Pastikan event memiliki reminder yang tepat
-                            $reminders = new \Google_Service_Calendar_EventReminders();
-                            $reminders->setUseDefault(false);
+                        // ✅ PERBAIKAN REMINDER: Set reminder yang konsisten dan lengkap
+                        $reminders = new \Google_Service_Calendar_EventReminders();
+                        $reminders->setUseDefault(false);
 
-                            $reminderItems = [];
+                        $reminderItems = [];
 
-                            // Email 1 hari sebelumnya
-                            $emailReminder = new \Google_Service_Calendar_EventReminder();
-                            $emailReminder->setMethod('email');
-                            $emailReminder->setMinutes(24 * 60); // 1440 menit = 1 hari
-                            $reminderItems[] = $emailReminder;
+                        // Email 1 hari sebelumnya (1440 menit)
+                        $emailReminder1Day = new \Google_Service_Calendar_EventReminder();
+                        $emailReminder1Day->setMethod('email');
+                        $emailReminder1Day->setMinutes(24 * 60); // 1440 menit = 1 hari
+                        $reminderItems[] = $emailReminder1Day;
 
-                            // Popup 30 menit sebelumnya
-                            $popupReminder1 = new \Google_Service_Calendar_EventReminder();
-                            $popupReminder1->setMethod('popup');
-                            $popupReminder1->setMinutes(30);
-                            $reminderItems[] = $popupReminder1;
+                        // Email 30 menit sebelumnya
+                        $emailReminder30 = new \Google_Service_Calendar_EventReminder();
+                        $emailReminder30->setMethod('email');
+                        $emailReminder30->setMinutes(30);
+                        $reminderItems[] = $emailReminder30;
 
-                            // Tambahkan reminder ke event
-                            $reminders->setOverrides($reminderItems);
-                            $eventDosen->setReminders($reminders);
+                        // Popup 30 menit sebelumnya
+                        $popupReminder30 = new \Google_Service_Calendar_EventReminder();
+                        $popupReminder30->setMethod('popup');
+                        $popupReminder30->setMinutes(30);
+                        $reminderItems[] = $popupReminder30;
 
-                            // Update event dengan parameter sendUpdates=all untuk trigger email notification
-                            $updatedEvent = $service->events->update('primary', $dosenEventId, $eventDosen, [
-                                'sendUpdates' => 'all', // PENTING: Parameter ini mengaktifkan notifikasi email
-                                'conferenceDataVersion' => 0,
-                                'supportsAttachments' => true
-                            ]);
+                        // Email 5 menit sebelumnya
+                        $emailReminder5 = new \Google_Service_Calendar_EventReminder();
+                        $emailReminder5->setMethod('email');
+                        $emailReminder5->setMinutes(5);
+                        $reminderItems[] = $emailReminder5;
 
-                            // PERBAIKAN 2: Double-ensure notifikasi terkirim dengan method lain
-                            try {
-                                // Gunakan method updateEventAttendees sebagai cadangan
-                                $notificationResult = $this->googleCalendarController->updateEventAttendees(
-                                    $dosenEventId,
-                                    $attendees,
-                                    [
-                                        'description' => $newDescription ?? $existingDescription,
-                                        'sendUpdates' => 'all', // Penting untuk notifikasi
-                                        'reminders' => [
-                                            'useDefault' => false,
-                                            'overrides' => [
-                                                ['method' => 'email', 'minutes' => 24 * 60],
-                                                ['method' => 'popup', 'minutes' => 30]
-                                            ]
+                        // Popup 5 menit sebelumnya
+                        $popupReminder5 = new \Google_Service_Calendar_EventReminder();
+                        $popupReminder5->setMethod('popup');
+                        $popupReminder5->setMinutes(5);
+                        $reminderItems[] = $popupReminder5;
+
+                        // Tambahkan reminder ke event
+                        $reminders->setOverrides($reminderItems);
+                        $eventDosen->setReminders($reminders);
+
+                        // Tambahkan logging untuk melacak parameter sendUpdates
+                        Log::info('Updating dosen event with sendUpdates=all parameter', [
+                            'event_id' => $eventDosen->getId(),
+                            'attendees_count' => count($attendees)
+                        ]);
+
+                        // Update event dengan parameter sendUpdates=all untuk trigger email notification
+                        $updatedEvent = $service->events->update('primary', $dosenEventId, $eventDosen, [
+                            'sendUpdates' => 'all', // PENTING: Parameter ini mengaktifkan notifikasi email
+                            'conferenceDataVersion' => 0,
+                            'supportsAttachments' => true
+                        ]);
+
+                        // ✅ PASTIKAN NOTIFIKASI EMAIL TERKIRIM: Double-ensure dengan method updateEventAttendees
+                        try {
+                            // Gunakan method updateEventAttendees sebagai cadangan untuk memastikan notifikasi
+                            $notificationResult = $this->googleCalendarController->updateEventAttendees(
+                                $dosenEventId,
+                                $attendees,
+                                [
+                                    'description' => $newDescription ?? $existingDescription,
+                                    'sendUpdates' => 'all', // Penting untuk notifikasi
+                                    'reminders' => [
+                                        'useDefault' => false,
+                                        'overrides' => [
+                                            ['method' => 'email', 'minutes' => 24 * 60], // 1 hari
+                                            ['method' => 'email', 'minutes' => 30],       // 30 menit
+                                            ['method' => 'popup', 'minutes' => 30],       // 30 menit popup
+                                            ['method' => 'email', 'minutes' => 5],        // 5 menit
+                                            ['method' => 'popup', 'minutes' => 5]         // 5 menit popup
                                         ]
                                     ]
-                                );
+                                ]
+                            );
 
-                                Log::info('Berhasil mengirim notifikasi dengan updateEventAttendees', [
-                                    'event_id' => $dosenEventId
-                                ]);
-                            } catch (\Exception $e) {
-                                Log::warning('Error menggunakan updateEventAttendees: ' . $e->getMessage());
-                                // Tetap lanjutkan proses meskipun ada error di sini
-                            }
-
-                            Log::info('Event dosen berhasil diupdate dengan attendee baru', [
-                                'event_id' => $updatedEvent->getId(),
-                                'attendees' => array_map(function ($a) {
-                                    return $a->getEmail();
-                                }, $updatedEvent->getAttendees())
+                            Log::info('✅ Berhasil mengirim notifikasi email dengan updateEventAttendees', [
+                                'event_id' => $dosenEventId,
+                                'mahasiswa_email' => $mahasiswaEmail
                             ]);
+                        } catch (\Exception $e) {
+                            Log::warning('⚠️ Error menggunakan updateEventAttendees: ' . $e->getMessage());
+                            // Tetap lanjutkan proses meskipun ada error di sini
+                        }
+
+                        Log::info('Event dosen berhasil diupdate dengan attendee baru', [
+                            'event_id' => $updatedEvent->getId(),
+                            'attendees' => array_map(function ($a) {
+                                return $a->getEmail();
+                            }, $updatedEvent->getAttendees())
+                        ]);
+                    } else {
+                        Log::info('Mahasiswa sudah terdaftar sebagai attendee');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Gagal mendapatkan atau mengupdate event dosen: ' . $e->getMessage(), [
+                        'event_id' => $dosenEventId,
+                        'exception' => $e
+                    ]);
+                    throw $e;
+                }
+
+                // --- LANGKAH 2: SIMPAN EVENT ID DI DATABASE ---
+                // Update usulan dengan ID event yang sama dengan jadwal (bukan format gabungan)
+                $usulan->event_id = $dosenEventId;
+                $usulan->save();
+
+                // --- LANGKAH 3: MENGELOLA AKSES MAHASISWA KE EVENT ---
+                $mahasiswa = $usulan->mahasiswa;
+
+                // Cek apakah mahasiswa terhubung dengan Google Calendar
+                if ($mahasiswa && $mahasiswa->hasGoogleCalendarConnected()) {
+                    try {
+                        // Inisialisasi controller baru dengan akses token mahasiswa
+                        $googleCalendarMhs = new GoogleCalendarController();
+
+                        if ($googleCalendarMhs->initWithUserToken($mahasiswa)) {
+                            // Inisialisasi service
+                            $serviceMhs = new \Google_Service_Calendar($googleCalendarMhs->getClient());
+
+                            // Ambil event dosen sebagai rujukan
+                            $eventReference = $service->events->get('primary', $dosenEventId);
+
+                            // Cek apakah event sudah ada di kalender mahasiswa dengan menggunakan iCalUID
+                            $optParams = [
+                                'maxResults' => 10,
+                                'orderBy' => 'startTime',
+                                'singleEvents' => true,
+                                'iCalUID' => $eventReference->getICalUID()
+                            ];
+
+                            $eventsResult = $serviceMhs->events->listEvents('primary', $optParams);
+                            $existingEvents = $eventsResult->getItems();
+
+                            // Jika event sudah ada, cukup update status
+                            if (!empty($existingEvents)) {
+                                $existingEvent = $existingEvents[0];
+
+                                // Update deskripsi dengan informasi terbaru
+                                $mhsDescription =
+                                    "NIM: {$usulan->nim}\n" .
+                                    "Dosen: {$usulan->dosen->nama}\n" .
+                                    "Jenis: " . ucfirst($usulan->jenis_bimbingan) . "\n" .
+                                    "Lokasi: {$request->lokasi}\n" .
+                                    "Status: TERKONFIRMASI\n" .
+                                    "Waktu Konfirmasi: " . now()->format('d-m-Y H:i') . "\n" .
+                                    "Nomor Antrian: {$usulan->nomor_antrian}\n" .
+                                    ($usulan->deskripsi ? "Catatan: {$usulan->deskripsi}" : "");
+
+                                $existingEvent->setDescription($mhsDescription);
+                                $existingEvent->setColorId('9'); // Hijau = confirmed
+
+                                // Update lokasi jika berubah
+                                if ($request->lokasi) {
+                                    $existingEvent->setLocation($request->lokasi);
+                                }
+
+                                // ✅ Set reminder yang sama untuk mahasiswa
+                                $reminders = new \Google_Service_Calendar_EventReminders();
+                                $reminders->setUseDefault(false);
+
+                                $reminderItems = [];
+
+                                // Email 1 hari sebelumnya
+                                $emailReminder1Day = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder1Day->setMethod('email');
+                                $emailReminder1Day->setMinutes(24 * 60);
+                                $reminderItems[] = $emailReminder1Day;
+
+                                // Email 30 menit sebelumnya
+                                $emailReminder30 = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder30->setMethod('email');
+                                $emailReminder30->setMinutes(30);
+                                $reminderItems[] = $emailReminder30;
+
+                                // Popup 30 menit sebelumnya
+                                $popupReminder30 = new \Google_Service_Calendar_EventReminder();
+                                $popupReminder30->setMethod('popup');
+                                $popupReminder30->setMinutes(30);
+                                $reminderItems[] = $popupReminder30;
+
+                                // Email 5 menit sebelumnya
+                                $emailReminder5 = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder5->setMethod('email');
+                                $emailReminder5->setMinutes(5);
+                                $reminderItems[] = $emailReminder5;
+
+                                // Popup 5 menit sebelumnya
+                                $popupReminder5 = new \Google_Service_Calendar_EventReminder();
+                                $popupReminder5->setMethod('popup');
+                                $popupReminder5->setMinutes(5);
+                                $reminderItems[] = $popupReminder5;
+
+                                $reminders->setOverrides($reminderItems);
+                                $existingEvent->setReminders($reminders);
+
+                                // Update dengan sendUpdates=all untuk notifikasi mahasiswa
+                                $serviceMhs->events->update('primary', $existingEvent->getId(), $existingEvent, [
+                                    'sendUpdates' => 'all'
+                                ]);
+
+                                Log::info('Event yang ada di kalender mahasiswa berhasil diupdate dengan notifikasi', [
+                                    'event_id' => $existingEvent->getId()
+                                ]);
+                            } else {
+                                // Buat event baru di kalender mahasiswa
+                                $mirrorEvent = new \Google_Service_Calendar_Event();
+                                $mirrorEvent->setSummary('Bimbingan ' . ucfirst($usulan->jenis_bimbingan) . ' dengan ' . $usulan->dosen->nama);
+
+                                // Gunakan iCalUID yang sama untuk menautkan dengan event dosen
+                                $mirrorEvent->setICalUID($eventReference->getICalUID());
+
+                                // Set deskripsi khusus untuk mahasiswa
+                                $mhsDescription =
+                                    "NIM: {$usulan->nim}\n" .
+                                    "Dosen: {$usulan->dosen->nama}\n" .
+                                    "NIP: {$usulan->dosen->nip}\n" .
+                                    "Jenis: " . ucfirst($usulan->jenis_bimbingan) . "\n" .
+                                    "Lokasi: {$request->lokasi}\n" .
+                                    "Status: TERKONFIRMASI\n" .
+                                    "Waktu Konfirmasi: " . now()->format('d-m-Y H:i') . "\n" .
+                                    "Nomor Antrian: {$usulan->nomor_antrian}\n" .
+                                    ($usulan->deskripsi ? "Catatan: {$usulan->deskripsi}" : "");
+
+                                $mirrorEvent->setDescription($mhsDescription);
+
+                                // Waktu yang sama dengan event dosen
+                                $mirrorEvent->setStart($eventReference->getStart());
+                                $mirrorEvent->setEnd($eventReference->getEnd());
+
+                                // Set lokasi jika ada
+                                if ($request->lokasi) {
+                                    $mirrorEvent->setLocation($request->lokasi);
+                                }
+
+                                // Set warna event (9 = hijau)
+                                $mirrorEvent->setColorId('9');
+
+                                // ✅ Set reminder yang sama untuk event mahasiswa baru
+                                $reminders = new \Google_Service_Calendar_EventReminders();
+                                $reminders->setUseDefault(false);
+
+                                $reminderItems = [];
+
+                                // Email 1 hari sebelumnya
+                                $emailReminder1Day = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder1Day->setMethod('email');
+                                $emailReminder1Day->setMinutes(24 * 60);
+                                $reminderItems[] = $emailReminder1Day;
+
+                                // Email 30 menit sebelumnya
+                                $emailReminder30 = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder30->setMethod('email');
+                                $emailReminder30->setMinutes(30);
+                                $reminderItems[] = $emailReminder30;
+
+                                // Popup 30 menit sebelumnya
+                                $popupReminder30 = new \Google_Service_Calendar_EventReminder();
+                                $popupReminder30->setMethod('popup');
+                                $popupReminder30->setMinutes(30);
+                                $reminderItems[] = $popupReminder30;
+
+                                // Email 5 menit sebelumnya
+                                $emailReminder5 = new \Google_Service_Calendar_EventReminder();
+                                $emailReminder5->setMethod('email');
+                                $emailReminder5->setMinutes(5);
+                                $reminderItems[] = $emailReminder5;
+
+                                // Popup 5 menit sebelumnya
+                                $popupReminder5 = new \Google_Service_Calendar_EventReminder();
+                                $popupReminder5->setMethod('popup');
+                                $popupReminder5->setMinutes(5);
+                                $reminderItems[] = $popupReminder5;
+
+                                // Tambahkan reminder ke event
+                                $reminders->setOverrides($reminderItems);
+                                $mirrorEvent->setReminders($reminders);
+
+                                // Tambahkan attendees di event mahasiswa
+                                $mhsAttendees = [];
+
+                                // Tambahkan dosen sebagai attendee
+                                $dosenAttendee = new \Google_Service_Calendar_EventAttendee();
+                                $dosenAttendee->setEmail($usulan->dosen->email);
+                                $dosenAttendee->setDisplayName($usulan->dosen->nama);
+                                $dosenAttendee->setResponseStatus('accepted');
+                                $mhsAttendees[] = $dosenAttendee;
+
+                                // Tambahkan mahasiswa juga sebagai attendee (agar mendapat notifikasi)
+                                $mhsAttendee = new \Google_Service_Calendar_EventAttendee();
+                                $mhsAttendee->setEmail($mahasiswa->email);
+                                $mhsAttendee->setDisplayName($mahasiswa->nama);
+                                $mhsAttendee->setResponseStatus('accepted');
+                                $mhsAttendees[] = $mhsAttendee;
+
+                                $mirrorEvent->setAttendees($mhsAttendees);
+
+                                // ✅ PAKAI IMPORT (bukan insert) untuk notifikasi yang lebih reliable
+                                $importedEvent = $serviceMhs->events->insert('primary', $mirrorEvent, [
+                                    'conferenceDataVersion' => 0,
+                                    'supportsAttachments' => true,
+                                    'sendUpdates' => 'all' // PENTING: untuk kirim notifikasi ke mahasiswa
+                                ]);
+
+                                Log::info('Event berhasil diimpor ke kalender mahasiswa dengan notifikasi', [
+                                    'imported_event_id' => $importedEvent->getId()
+                                ]);
+
+                                // ✅ DOUBLE-ENSURE: Update tambahan untuk memastikan notifikasi terkirim
+                                try {
+                                    // Tambahan update untuk memastikan notifikasi terkirim
+                                    $serviceMhs->events->update('primary', $importedEvent->getId(), $importedEvent, [
+                                        'sendUpdates' => 'all'
+                                    ]);
+
+                                    Log::info('Additional update untuk memastikan notifikasi event mahasiswa terkirim');
+                                } catch (\Exception $e) {
+                                    Log::warning('Gagal melakukan update tambahan pada event mahasiswa: ' . $e->getMessage());
+                                    // Tetap lanjutkan proses meskipun ada error di sini
+                                }
+                            }
                         } else {
-                            Log::info('Mahasiswa sudah terdaftar sebagai attendee');
+                            Log::warning('Tidak dapat menginisialisasi Google Calendar dengan token mahasiswa');
                         }
                     } catch (\Exception $e) {
-                        Log::error('Gagal mendapatkan atau mengupdate event dosen: ' . $e->getMessage(), [
-                            'event_id' => $dosenEventId,
-                            'exception' => $e
+                        Log::error('Error saat mengelola event di kalender mahasiswa: ' . $e->getMessage(), [
+                            'trace' => $e->getTraceAsString()
                         ]);
-                        throw $e;
+                        // Kita tidak throw exception di sini agar proses utama tetap jalan
                     }
-
-                    // --- LANGKAH 2: SIMPAN EVENT ID DI DATABASE ---
-                    // Update usulan dengan ID event yang sama dengan jadwal (bukan format gabungan)
-                    $usulan->event_id = $dosenEventId;
-                    $usulan->save();
-
-                    // --- LANGKAH 3: MENGELOLA AKSES MAHASISWA KE EVENT ---
-                    $mahasiswa = $usulan->mahasiswa;
-
-                    // Cek apakah mahasiswa terhubung dengan Google Calendar
-                    if ($mahasiswa && $mahasiswa->hasGoogleCalendarConnected()) {
-                        try {
-                            // Inisialisasi controller baru dengan akses token mahasiswa
-                            $googleCalendarMhs = new GoogleCalendarController();
-
-                            if ($googleCalendarMhs->initWithUserToken($mahasiswa)) {
-                                // TINGKAT AKSES KALENDER: Tambahkan event ke kalender mahasiswa sebagai MIRROR
-                                // Ini akan memastikan mahasiswa dapat melihat event tanpa duplikasi
-
-                                // Inisialisasi service
-                                $serviceMhs = new \Google_Service_Calendar($googleCalendarMhs->getClient());
-
-                                // Ambil event dosen sebagai rujukan
-                                $eventReference = $service->events->get('primary', $dosenEventId);
-
-                                // Cek apakah event sudah ada di kalender mahasiswa dengan menggunakan iCalUID
-                                $optParams = [
-                                    'maxResults' => 10,
-                                    'orderBy' => 'startTime',
-                                    'singleEvents' => true,
-                                    'iCalUID' => $eventReference->getICalUID()
-                                ];
-
-                                $eventsResult = $serviceMhs->events->listEvents('primary', $optParams);
-                                $existingEvents = $eventsResult->getItems();
-
-                                // Jika event sudah ada, cukup update status
-                                if (!empty($existingEvents)) {
-                                    $existingEvent = $existingEvents[0];
-
-                                    // Update deskripsi dengan informasi terbaru
-                                    $mhsDescription =
-                                        "NIM: {$usulan->nim}\n" .
-                                        "Dosen: {$usulan->dosen->nama}\n" .
-                                        "Jenis: " . ucfirst($usulan->jenis_bimbingan) . "\n" .
-                                        "Lokasi: {$request->lokasi}\n" .
-                                        "Status: TERKONFIRMASI\n" .
-                                        "Waktu Konfirmasi: " . now()->format('d-m-Y H:i') . "\n" .
-                                        "Nomor Antrian: {$usulan->nomor_antrian}\n" .
-                                        ($usulan->deskripsi ? "Catatan: {$usulan->deskripsi}" : "");
-
-                                    $existingEvent->setDescription($mhsDescription);
-                                    $existingEvent->setColorId('9'); // Hijau = confirmed
-
-                                    // Update lokasi jika berubah
-                                    if ($request->lokasi) {
-                                        $existingEvent->setLocation($request->lokasi);
-                                    }
-
-                                    // PERBAIKAN 3: Update event dengan sendUpdates=all untuk mengirim notifikasi
-                                    $serviceMhs->events->update('primary', $existingEvent->getId(), $existingEvent, [
-                                        'sendUpdates' => 'all' // Tambahkan parameter ini
-                                    ]);
-
-                                    Log::info('Event yang ada di kalender mahasiswa berhasil diupdate dengan notifikasi', [
-                                        'event_id' => $existingEvent->getId()
-                                    ]);
-                                } else {
-                                    // PENTING: Kita TIDAK membuat event baru di kalender mahasiswa
-                                    // Sebagai gantinya, kita mengimpor event dosen sebagai "instance" di kalender mahasiswa
-                                    // Ini menggunakan fitur "import" dari Google Calendar API
-
-                                    // Buat event baru yang identik
-                                    $mirrorEvent = new \Google_Service_Calendar_Event();
-                                    $mirrorEvent->setSummary('Bimbingan ' . ucfirst($usulan->jenis_bimbingan) . ' dengan ' . $usulan->dosen->nama);
-
-                                    // Gunakan iCalUID yang sama untuk menautkan dengan event dosen
-                                    $mirrorEvent->setICalUID($eventReference->getICalUID());
-
-                                    // Set deskripsi khusus untuk mahasiswa
-                                    $mhsDescription =
-                                        "NIM: {$usulan->nim}\n" .
-                                        "Dosen: {$usulan->dosen->nama}\n" .
-                                        "NIP: {$usulan->dosen->nip}\n" .
-                                        "Jenis: " . ucfirst($usulan->jenis_bimbingan) . "\n" .
-                                        "Lokasi: {$request->lokasi}\n" .
-                                        "Status: TERKONFIRMASI\n" .
-                                        "Waktu Konfirmasi: " . now()->format('d-m-Y H:i') . "\n" .
-                                        "Nomor Antrian: {$usulan->nomor_antrian}\n" .
-                                        ($usulan->deskripsi ? "Catatan: {$usulan->deskripsi}" : "");
-
-                                    $mirrorEvent->setDescription($mhsDescription);
-
-                                    // Waktu yang sama dengan event dosen
-                                    $mirrorEvent->setStart($eventReference->getStart());
-                                    $mirrorEvent->setEnd($eventReference->getEnd());
-
-                                    // Set lokasi jika ada
-                                    if ($request->lokasi) {
-                                        $mirrorEvent->setLocation($request->lokasi);
-                                    }
-
-                                    // Set warna event (9 = hijau)
-                                    $mirrorEvent->setColorId('9');
-
-                                    // Set reminder
-                                    $reminders = new \Google_Service_Calendar_EventReminders();
-                                    $reminders->setUseDefault(false);
-
-                                    $reminderItems = [];
-
-                                    // Email 1 hari sebelumnya
-                                    $emailReminder = new \Google_Service_Calendar_EventReminder();
-                                    $emailReminder->setMethod('email');
-                                    $emailReminder->setMinutes(24 * 60); // 1440 menit = 1 hari
-                                    $reminderItems[] = $emailReminder;
-
-                                    // Popup 30 menit sebelumnya
-                                    $popupReminder1 = new \Google_Service_Calendar_EventReminder();
-                                    $popupReminder1->setMethod('popup');
-                                    $popupReminder1->setMinutes(30);
-                                    $reminderItems[] = $popupReminder1;
-
-                                    // Popup 5 menit sebelumnya
-                                    $popupReminder2 = new \Google_Service_Calendar_EventReminder();
-                                    $popupReminder2->setMethod('popup');
-                                    $popupReminder2->setMinutes(5);
-                                    $reminderItems[] = $popupReminder2;
-
-                                    // Tambahkan reminder ke event
-                                    $reminders->setOverrides($reminderItems);
-                                    $mirrorEvent->setReminders($reminders);
-
-                                    // PERBAIKAN 4: Tambahkan attendees di event mahasiswa
-                                    $mhsAttendees = [];
-
-                                    // Tambahkan dosen sebagai attendee
-                                    $dosenAttendee = new \Google_Service_Calendar_EventAttendee();
-                                    $dosenAttendee->setEmail($usulan->dosen->email);
-                                    $dosenAttendee->setDisplayName($usulan->dosen->nama);
-                                    $dosenAttendee->setResponseStatus('accepted');
-                                    $mhsAttendees[] = $dosenAttendee;
-
-                                    // Tambahkan mahasiswa juga sebagai attendee (agar mendapat notifikasi)
-                                    $mhsAttendee = new \Google_Service_Calendar_EventAttendee();
-                                    $mhsAttendee->setEmail($mahasiswa->email);
-                                    $mhsAttendee->setDisplayName($mahasiswa->nama);
-                                    $mhsAttendee->setResponseStatus('accepted');
-                                    $mhsAttendees[] = $mhsAttendee;
-
-                                    $mirrorEvent->setAttendees($mhsAttendees);
-
-                                    // PERBAIKAN 5: Impor event ke kalender mahasiswa dengan sendUpdates=all
-                                    $importedEvent = $serviceMhs->events->import('primary', $mirrorEvent, [
-                                        'conferenceDataVersion' => 0,
-                                        'supportsAttachments' => true,
-                                        'sendUpdates' => 'all' // Tambahkan parameter ini untuk kirim notifikasi
-                                    ]);
-
-                                    Log::info('Event berhasil diimpor ke kalender mahasiswa dengan notifikasi', [
-                                        'imported_event_id' => $importedEvent->getId()
-                                    ]);
-
-                                    // PERBAIKAN 6: Double-ensure dengan update tambahan untuk kirim notifikasi
-                                    try {
-                                        // Tambahan update untuk memastikan notifikasi terkirim
-                                        $serviceMhs->events->update('primary', $importedEvent->getId(), $importedEvent, [
-                                            'sendUpdates' => 'all'
-                                        ]);
-
-                                        Log::info('Additional update untuk memastikan notifikasi event mahasiswa terkirim');
-                                    } catch (\Exception $e) {
-                                        Log::warning('Gagal melakukan update tambahan pada event mahasiswa: ' . $e->getMessage());
-                                        // Tetap lanjutkan proses meskipun ada error di sini
-                                    }
-                                }
-                            } else {
-                                Log::warning('Tidak dapat menginisialisasi Google Calendar dengan token mahasiswa');
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Error saat mengelola event di kalender mahasiswa: ' . $e->getMessage(), [
-                                'trace' => $e->getTraceAsString()
-                            ]);
-                            // Kita tidak throw exception di sini agar proses utama tetap jalan
-                        }
-                    } else {
-                        Log::info('Mahasiswa belum terhubung dengan Google Calendar');
-                    }
-
-                    DB::commit();
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Usulan bimbingan berhasil disetujui dan undangan telah dikirim'
-                    ]);
-                } catch (\Exception $e) {
-                    Log::error('Error Google Calendar: ' . $e->getMessage(), [
-                        'trace' => $e->getTraceAsString()
-                    ]);
-
-                    // Tetap commit perubahan database meskipun ada error Google Calendar
-                    DB::commit();
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Usulan bimbingan berhasil disetujui (tanpa notifikasi calendar)'
-                    ]);
+                } else {
+                    Log::info('Mahasiswa belum terhubung dengan Google Calendar');
                 }
+
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Usulan bimbingan berhasil disetujui dan undangan telah dikirim'
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error Google Calendar: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
+
+                // Tetap commit perubahan database meskipun ada error Google Calendar
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Usulan bimbingan berhasil disetujui (tanpa notifikasi calendar)'
+                ]);
             }
-
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menyetujui usulan bimbingan'
-            ], 500);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error in approve consultation: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat memproses usulan'
-            ], 500);
         }
+
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menyetujui usulan bimbingan'
+        ], 500);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error in approve consultation: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat memproses usulan'
+        ], 500);
     }
+}
 
     public function tolak(Request $request, $id)
     {

@@ -15,7 +15,8 @@
         "kreait/firebase-php": "*",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
-        "laravel/ui": "*"
+        "laravel/ui": "*",
+        "spatie/db-dumper": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

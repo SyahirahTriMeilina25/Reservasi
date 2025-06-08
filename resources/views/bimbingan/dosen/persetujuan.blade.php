@@ -2213,148 +2213,313 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Handle approve confirmation
-    document.getElementById('confirmTerima')?.addEventListener('click', async function() {
-        const lokasiInput = document.getElementById('lokasiBimbingan');
-        if (!lokasiInput || !currentId || !currentRow) {
-            console.error('Data tidak lengkap:', { lokasiInput, currentId, currentRow });
-            return;
-        }
+    // ✨ FIXED: Single spinner only - no more duplicates!
 
-        const lokasi = lokasiInput.value.trim();
-        if (!lokasi) {
-            lokasiInput.classList.add('is-invalid');
-            return;
-        }
+// Network detection (silent)
+let adaptiveTimeout = 10000;
 
+async function detectNetworkQuality() {
+    try {
+        const startTime = Date.now();
+        await fetch('/favicon.ico?' + Date.now(), { method: 'HEAD', cache: 'no-cache' });
+        const latency = Date.now() - startTime;
+        
+        if (latency < 500) {
+            adaptiveTimeout = 8000;
+        } else if (latency < 1500) {
+            adaptiveTimeout = 12000;
+        } else {
+            adaptiveTimeout = 20000;
+        }
+    } catch (error) {
+        adaptiveTimeout = 15000;
+    }
+}
+
+// ✅ APPROVE - Single spinner only
+document.getElementById('confirmTerima')?.addEventListener('click', async function() {
+    const lokasiInput = document.getElementById('lokasiBimbingan');
+    if (!lokasiInput || !currentId || !currentRow) {
+        console.error('Data tidak lengkap:', { lokasiInput, currentId, currentRow });
+        return;
+    }
+
+    const lokasi = lokasiInput.value.trim();
+    if (!lokasi) {
+        lokasiInput.classList.add('is-invalid');
+        return;
+    }
+
+    try {
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Memproses...';
+        
+        if (bsModalTerima) bsModalTerima.hide();
+        
+        // ✅ FIXED: Single spinner, no HTML conflict
+        Swal.fire({
+            title: 'Memproses...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading(); // ✅ Pakai default SweetAlert spinner saja
+            }
+        });
+
+        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), adaptiveTimeout);
+        
+        const response = await fetch(`/persetujuan/terima/${currentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ lokasi: lokasi }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const responseText = await response.text();
+        let data;
         try {
-            this.disabled = true;
-            console.log('Sending approval with ID:', currentId, 'and location:', lokasi);
+            data = JSON.parse(responseText);
+        } catch (e) {
+            throw new Error('Invalid response');
+        }
 
-            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
-            const response = await fetch(`/persetujuan/terima/${currentId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    lokasi: lokasi
-                })
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Usulan disetujui',
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true
+            }).then(() => {
+                window.location.reload();
             });
-
-            console.log('Response status:', response.status);
-            const responseText = await response.text();
-            console.log('Response text:', responseText);
-            
-            let data;
-            try {
-                data = JSON.parse(responseText);
-                console.log('Parsed JSON:', data);
-            } catch (e) {
-                console.error('Error parsing JSON:', e);
-                throw new Error('Invalid JSON response: ' + responseText);
-            }
-
-            if (data.success) {
-                if (bsModalTerima) bsModalTerima.hide();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Usulan bimbingan berhasil disetujui',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
+        } else {
+            throw new Error(data.message || 'Gagal memproses');
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Timeout',
+                text: 'Proses terlalu lama',
+                showCancelButton: true,
+                confirmButtonText: 'Refresh',
+                cancelButtonText: 'Coba Lagi'
+            }).then((result) => {
+                if (result.isConfirmed) {
                     window.location.reload();
-                });
-            } else {
-                throw new Error(data.message || 'Terjadi kesalahan saat menyimpan data');
-            }
-        } catch (error) {
-            console.error('Error:', error);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    this.disabled = false;
+                    this.innerHTML = originalText;
+                    setTimeout(() => {
+                        if (bsModalTerima) bsModalTerima.show();
+                    }, 300);
+                }
+            });
+            return;
+        } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Terjadi kesalahan saat memproses usulan'
+                title: 'Error',
+                text: 'Gagal memproses usulan'
             });
-        } finally {
-            this.disabled = false;
         }
-    });
-
-    // Handle reject confirmation
-    document.getElementById('confirmTolak')?.addEventListener('click', async function() {
-        const alasanInput = document.getElementById('alasanPenolakan');
-        if (!alasanInput || !currentId || !currentRow) {
-            console.error('Data tidak lengkap:', { alasanInput, currentId, currentRow });
-            return;
+        
+        this.disabled = false;
+        this.innerHTML = originalText;
+        
+        if (bsModalTerima) {
+            setTimeout(() => {
+                bsModalTerima.show();
+            }, 500);
         }
+    }
+});
 
-        const alasan = alasanInput.value.trim();
-        if (!alasan) {
-            alasanInput.classList.add('is-invalid');
-            return;
-        }
+// ✅ REJECT - Single spinner only
+document.getElementById('confirmTolak')?.addEventListener('click', async function() {
+    const alasanInput = document.getElementById('alasanPenolakan');
+    if (!alasanInput || !currentId || !currentRow) {
+        console.error('Data tidak lengkap:', { alasanInput, currentId, currentRow });
+        return;
+    }
 
+    const alasan = alasanInput.value.trim();
+    if (!alasan) {
+        alasanInput.classList.add('is-invalid');
+        return;
+    }
+
+    try {
+        this.disabled = true;
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Memproses...';
+        
+        if (bsModalTolak) bsModalTolak.hide();
+        
+        // ✅ FIXED: Single spinner only
+        Swal.fire({
+            title: 'Memproses...',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading(); // ✅ Default spinner saja
+            }
+        });
+
+        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        const controller = new AbortController();
+        const rejectTimeout = Math.max(6000, adaptiveTimeout * 0.7);
+        const timeoutId = setTimeout(() => controller.abort(), rejectTimeout);
+        
+        const response = await fetch(`/persetujuan/tolak/${currentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ keterangan: alasan }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        const responseText = await response.text();
+        let data;
         try {
-            this.disabled = true;
-            console.log('Sending rejection with ID:', currentId, 'and reason:', alasan);
+            data = JSON.parse(responseText);
+        } catch (e) {
+            throw new Error('Invalid response');
+        }
 
-            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            
-            const response = await fetch(`/persetujuan/tolak/${currentId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    keterangan: alasan
-                })
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Usulan ditolak',
+                showConfirmButton: false,
+                timer: 1500,
+                timerProgressBar: true
+            }).then(() => {
+                window.location.reload();
             });
-
-            console.log('Response status:', response.status);
-            const responseText = await response.text();
-            console.log('Response text:', responseText);
-            
-            let data;
-            try {
-                data = JSON.parse(responseText);
-                console.log('Parsed JSON:', data);
-            } catch (e) {
-                console.error('Error parsing JSON:', e);
-                throw new Error('Invalid JSON response: ' + responseText);
-            }
-
-            if (data.success) {
-                if (bsModalTolak) bsModalTolak.hide();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Usulan bimbingan telah ditolak',
-                    timer: 2000,
-                    showConfirmButton: false
-                }).then(() => {
+        } else {
+            throw new Error(data.message || 'Gagal memproses');
+        }
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Timeout',
+                text: 'Proses terlalu lama',
+                showCancelButton: true,
+                confirmButtonText: 'Refresh',
+                cancelButtonText: 'Coba Lagi'
+            }).then((result) => {
+                if (result.isConfirmed) {
                     window.location.reload();
-                });
-            } else {
-                throw new Error(data.message || 'Terjadi kesalahan saat menyimpan data');
-            }
-        } catch (error) {
-            console.error('Error:', error);
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    this.disabled = false;
+                    this.innerHTML = originalText;
+                    setTimeout(() => {
+                        if (bsModalTolak) bsModalTolak.show();
+                    }, 300);
+                }
+            });
+            return;
+        } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Oops...',
-                text: error.message || 'Terjadi kesalahan saat memproses usulan'
+                title: 'Error',
+                text: 'Gagal memproses usulan'
             });
-        } finally {
-            this.disabled = false;
         }
-    });
+        
+        this.disabled = false;
+        this.innerHTML = originalText;
+        
+        if (bsModalTolak) {
+            setTimeout(() => {
+                bsModalTolak.show();
+            }, 500);
+        }
+    }
+});
+
+// CSS minimal
+const loadingStyle = document.createElement('style');
+loadingStyle.textContent = `
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+        border-width: 0.2em;
+    }
+    
+    .swal2-popup {
+        animation: swal2-show 0.3s ease-out !important;
+    }
+    
+    body.loading {
+        opacity: 0.8;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+    
+    .btn.loading {
+        position: relative;
+        color: transparent !important;
+    }
+    
+    .btn.loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border: 2px solid transparent;
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* ✅ Style untuk SweetAlert default spinner */
+    .swal2-loader {
+        border-color: #3085d6 transparent #3085d6 transparent !important;
+    }
+    
+    .swal2-timer-progress-bar {
+        background: rgba(0, 123, 255, 0.75) !important;
+    }
+`;
+document.head.appendChild(loadingStyle);
+
+// Silent network detection
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(detectNetworkQuality, 1000);
+});
 
     // Handle konfirmasi selesai
     document.getElementById('confirmSelesai')?.addEventListener('click', async function() {

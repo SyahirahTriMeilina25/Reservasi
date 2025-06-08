@@ -15,6 +15,41 @@
         .text-bold {
             font-weight: 600;
         }
+
+        /* Perbaikan untuk text wrapping */
+        .text-content {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+            max-width: 100%;
+            line-height: 1.5;
+        }
+
+        .keterangan-text {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-line;
+            max-width: 100%;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        .deskripsi-text {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-line;
+            max-width: 100%;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+
+        /* Responsive text sizing */
+        @media (max-width: 768px) {
+            .keterangan-text,
+            .deskripsi-text {
+                font-size: 0.9em;
+            }
+        }
     </style>
 @endpush
 
@@ -65,13 +100,13 @@
                     <h5 class="text-bold">Mahasiswa</h5>
                     <hr>
                     <p class="card-title text-muted text-sm">Nama</p>
-                    <p class="card-text text-start">{{ $usulan->mahasiswa_nama }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->mahasiswa_nama }}</p>
                     <p class="card-title text-muted text-sm">NIM</p>
-                    <p class="card-text text-start">{{ $usulan->nim }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->nim }}</p>
                     <p class="card-title text-muted text-sm">Program Studi</p>
-                    <p class="card-text text-start">{{ $usulan->nama_prodi }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->nama_prodi }}</p>
                     <p class="card-title text-muted text-sm">Konsentrasi</p>
-                    <p class="card-text text-start">{{ $usulan->nama_konsentrasi }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->nama_konsentrasi }}</p>
                 </div>
 
                 <!-- Dosen Pembimbing Card -->
@@ -79,7 +114,7 @@
                     <h5 class="text-bold">Dosen Pembimbing</h5>
                     <hr>
                     <p class="card-title text-secondary text-sm">Nama</p>
-                    <p class="card-text text-start">{{ $usulan->dosen_nama }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->dosen_nama }}</p>
                 </div>
             </div>
         </div>
@@ -91,17 +126,21 @@
                     <h5 class="text-bold">Data Usulan Jadwal Bimbingan</h5>
                     <hr>
                     <p class="card-title text-muted text-sm">Jenis Bimbingan</p>
-                    <p class="card-text text-start">{{ ucfirst($usulan->jenis_bimbingan) }}</p>
+                    <p class="card-text text-start text-content">{{ ucfirst($usulan->jenis_bimbingan) }}</p>
                     <p class="card-title text-muted text-sm">Tanggal</p>
-                    <p class="card-text text-start">{{ $tanggal }}</p>
+                    <p class="card-text text-start text-content">{{ $tanggal }}</p>
                     <p class="card-title text-muted text-sm">Waktu</p>
-                    <p class="card-text text-start">{{ $waktuMulai }} - {{ $waktuSelesai }}</p>
+                    <p class="card-text text-start text-content">{{ $waktuMulai }} - {{ $waktuSelesai }}</p>
                     <p class="card-title text-muted text-sm">Lokasi</p>
-                    <p class="card-text text-start">{{ $usulan->lokasi ?? '-' }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->lokasi ?? '-' }}</p>
                     <p class="card-title text-muted text-sm">Antrian</p>
-                    <p class="card-text text-start">{{ $usulan->nomor_antrian ?? '-' }}</p>
+                    <p class="card-text text-start text-content">{{ $usulan->nomor_antrian ?? '-' }}</p>
                     <p class="card-title text-muted text-sm">Deskripsi</p>
-                    <p class="card-text text-start">{{ $usulan->deskripsi ?? '-' }}</p>
+                    @if($usulan->deskripsi && trim($usulan->deskripsi) !== '')
+                        <div class="deskripsi-text">{{ $usulan->deskripsi }}</div>
+                    @else
+                        <p class="card-text text-start text-muted">Tidak ada deskripsi</p>
+                    @endif
                 </div>
 
                 <!-- Keterangan Usulan Card -->
@@ -113,7 +152,12 @@
                         <span class="status-badge {{ $statusBadgeClass }}">{{ strtoupper($usulan->status) }}</span>
                     </p>
                     <p class="card-title text-secondary text-sm">Keterangan</p>
-                    <p class="card-text text-start">{{ $usulan->keterangan ?? 'Belum ada keterangan' }}</p>
+                    @if($usulan->keterangan && trim($usulan->keterangan) !== '')
+                        <div class="keterangan-text">{{ $usulan->keterangan }}</div>
+                    @else
+                        <p class="card-text text-start text-muted">Belum ada keterangan</p>
+                    @endif
+                    
                     @if ($usulan->created_at)
                         <p class="card-title text-secondary text-sm">Diajukan pada</p>
                         <p class="card-text text-start">

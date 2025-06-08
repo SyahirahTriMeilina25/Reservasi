@@ -271,7 +271,7 @@
                             <div class="col-lg-4">
                                 <div class="form-section">
                                     <div class="logo-section text-center">
-                                        <img src="{{ asset('images/logounri.png') }}" alt="logo_unri" width="80" height="80" class="img-fluid mb-3">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2c/LOGO-UNRI.png" alt="logo_unri" width="80" height="80" class="img-fluid mb-3">
                                         <h4 class="fw-bold mb-0">Sistem Elektronik</h4>
                                         <p class="mb-0">Program Studi Teknik Informatika</p>
                                     </div>
