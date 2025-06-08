@@ -381,7 +381,7 @@
                     <p class="stat-label">Total Mahasiswa</p>
                 </div>
                 <div class="card-body">
-                    <p>Kelola data mahasiswa, tambah, edit, dan reset password</p>
+                    <p>Kelola data mahasiswa, tambah, edit, hapus, dan reset password</p>
                     <a href="{{ route('admin.datamahasiswa') }}" class="btn btn-primary btn-action">
                         <i class="bi bi-database-fill me-2"></i> Kelola Data
                     </a>
@@ -397,7 +397,7 @@
                     <p class="stat-label">Total Dosen</p>
                 </div>
                 <div class="card-body">
-                    <p>Kelola data dosen, tambah, edit, dan reset password</p>
+                    <p>Kelola data dosen, tambah, edit, hapus, dan reset password</p>
                     <a href="{{ route('admin.datadosen') }}" class="btn btn-info text-white btn-action">
                         <i class="bi bi-database-fill me-2"></i> Kelola Data
                     </a>
@@ -413,7 +413,7 @@
                     <p class="stat-label">Total Konsentrasi</p>
                 </div>
                 <div class="card-body">
-                    <p>Kelola data konsentrasi pada program studi</p>
+                    <p>Kelola data konsentrasi pada program studi tambah, edit, dan hapus</p>
                     <a href="{{ route('admin.datakonsentrasi') }}" class="btn btn-success text-white btn-action">
                         <i class="bi bi-database-fill me-2"></i> Kelola Data
                     </a>

@@ -56,237 +56,282 @@ class MasukkanJadwalController extends Controller
      * Menyimpan jadwal baru
      */
     public function store(Request $request)
-    {
-        try {
-            // Log semua data request di awal
-            Log::info('Request data untuk jadwal baru:', $request->all());
+{
+    try {
+        // Log semua data request di awal
+        Log::info('Request data untuk jadwal baru:', $request->all());
 
-            // Refresh token jika diperlukan
-            if (!$this->googleCalendarController->validateAndRefreshToken()) {
-                Log::error('Google Calendar authentication failed for dosen:', [
-                    'nip' => Auth::guard('dosen')->user()->nip
-                ]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Tidak dapat terhubung ke Google Calendar. Silakan hubungkan ulang.'
-                ], 401);
-            }
-
-            // Validasi request
-            $validated = $request->validate([
-                'start' => 'required|date',
-                'end' => 'required|date|after:start',
-                'description' => 'nullable|string',
-                'has_kuota_limit' => 'boolean',
-                'kuota' => 'nullable|numeric|min:1',
-                'jenis_bimbingan' => 'nullable|string|in:skripsi,kp,akademik,konsultasi,mbkm,lainnya',
-                'lokasi' => 'nullable|string|max:255',
+        // Refresh token jika diperlukan
+        if (!$this->googleCalendarController->validateAndRefreshToken()) {
+            Log::error('Google Calendar authentication failed for dosen:', [
+                'nip' => Auth::guard('dosen')->user()->nip
             ]);
-
-            // Validasi jenis bimbingan jika enableJenisBimbingan diaktifkan
-            if ($request->enableJenisBimbingan && empty($request->jenis_bimbingan)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Jenis bimbingan harus dipilih jika opsi "Tentukan Jenis Bimbingan" diaktifkan'
-                ], 422);
-            }
-
-            // Parse dates with explicit timezone
-            $start = Carbon::parse($request->start)->setTimezone('Asia/Jakarta');
-            $end = Carbon::parse($request->end)->setTimezone('Asia/Jakarta');
-
-            $dosen = Auth::guard('dosen')->user();
-
-            $existingSchedules = JadwalBimbingan::where('nip', $dosen->nip)
-                ->where(function ($query) use ($start, $end) {
-                    // Jadwal bentrok jika:
-                    // 1. Jadwal baru mulai di antara jadwal yang sudah ada
-                    // 2. Jadwal baru selesai di antara jadwal yang sudah ada
-                    // 3. Jadwal baru melingkupi jadwal yang sudah ada
-                    $query->where(function ($q) use ($start, $end) {
-                        $q->where('waktu_mulai', '<=', $start)
-                            ->where('waktu_selesai', '>', $start);
-                    })->orWhere(function ($q) use ($start, $end) {
-                        $q->where('waktu_mulai', '<', $end)
-                            ->where('waktu_selesai', '>=', $end);
-                    })->orWhere(function ($q) use ($start, $end) {
-                        $q->where('waktu_mulai', '>=', $start)
-                            ->where('waktu_selesai', '<=', $end);
-                    });
-                })
-                ->where('status', '!=', JadwalBimbingan::STATUS_DIBATALKAN)
-                ->first();
-
-            if ($existingSchedules) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Jadwal bentrok dengan jadwal yang sudah ada pada waktu ' .
-                        Carbon::parse($existingSchedules->waktu_mulai)->format('H:i') . ' - ' .
-                        Carbon::parse($existingSchedules->waktu_selesai)->format('H:i')
-                ], 422);
-            }
-
-            // Perbaiki logika kapasitas
-            $kapasitas = 0; // Default untuk kuota tidak terbatas
-            if ($request->has_kuota_limit) {
-                $kapasitas = intval($request->kuota ?? 1);
-            }
-
-            Log::info('Kapasitas yang akan digunakan:', [
-                'has_kuota_limit' => $request->has_kuota_limit,
-                'kuota_request' => $request->kuota,
-                'kapasitas_final' => $kapasitas
-            ]);
-
-            // Secara eksplisit tentukan nilai jenis_bimbingan
-            $jenisBimbingan = null;
-            if ($request->enableJenisBimbingan === true || $request->enableJenisBimbingan === "true" || $request->enableJenisBimbingan === 1) {
-                $jenisBimbingan = $request->jenis_bimbingan;
-                Log::info("Checkbox enableJenisBimbingan aktif, menggunakan nilai:", ['jenis_bimbingan' => $jenisBimbingan]);
-            } else {
-                Log::info("Checkbox enableJenisBimbingan tidak aktif, jenis_bimbingan akan null");
-            }
-
-            if ($jenisBimbingan === 'lainnya') {
-                Log::info('Mencoba menyimpan jenis bimbingan "lainnya"', [
-                    'jenisBimbingan' => $jenisBimbingan,
-                    'request_data' => $request->all()
-                ]);
-            }
-
-            // Tambahkan debug sebelum menyimpan
-            Log::info('Nilai yang akan disimpan ke database:', [
-                'enableJenisBimbingan' => $request->enableJenisBimbingan,
-                'jenis_bimbingan_dari_request' => $request->jenis_bimbingan,
-                'jenis_bimbingan_final' => $jenisBimbingan
-            ]);
-
-            // Buat event di Google Calendar
-            $description =
-                "Dosen: {$dosen->nama}\n" .
-                "NIP: {$dosen->nip}\n" .
-                "Email: {$dosen->email}\n";
-
-            // Tambahkan informasi kuota
-            if ($request->has_kuota_limit) {
-                $description .= "Kuota: Terbatas ({$kapasitas} mahasiswa)\n";
-            } else {
-                $description .= "Kuota: Tidak terbatas\n";
-            }
-
-            // Tambahkan informasi jenis bimbingan jika ada
-            if ($jenisBimbingan) {
-                $jenisBimbinganText = match ($jenisBimbingan) {
-                    'skripsi' => 'Bimbingan Skripsi',
-                    'kp' => 'Bimbingan KP',
-                    'akademik' => 'Bimbingan Akademik',
-                    'konsultasi' => 'Konsultasi Pribadi',
-                    'mbkm' => 'Bimbingan MBKM',
-                    'lainnya' => 'Lainnya',
-                    default => 'Bimbingan'
-                };
-                $description .= "Jenis: {$jenisBimbinganText}\n";
-            }
-
-            // Tambahkan lokasi jika ada
-            if ($request->lokasi) {
-                $description .= "Lokasi: {$request->lokasi}\n";
-            }
-
-            // Tambahkan catatan jika ada
-            if ($request->description) {
-                $description .= "Catatan: {$request->description}";
-            }
-
-            $eventData = [
-                'summary' => 'Jadwal Bimbingan',
-                'description' => $description,
-                'start' => $start,
-                'end' => $end,
-                'reminders' => [
-                    'useDefault' => false,
-                    'overrides' => [
-                        ['method' => 'email', 'minutes' => 24 * 60],
-                        ['method' => 'popup', 'minutes' => 30],
-                        ['method' => 'popup', 'minutes' => 5],
-                    ],
-                ],
-            ];
-
-            DB::beginTransaction();
-            try {
-                // Buat event di Google Calendar
-                $createdEvent = $this->googleCalendarController->createEvent($eventData);
-
-                // Simpan ke database dengan pendekatan yang berbeda
-                $jadwal = new JadwalBimbingan();
-                $jadwal->event_id = $createdEvent->id;
-                $jadwal->nip = $dosen->nip;
-                $jadwal->waktu_mulai = $start;
-                $jadwal->waktu_selesai = $end;
-                $jadwal->catatan = $request->description;
-                $jadwal->status = JadwalBimbingan::STATUS_TERSEDIA;
-                $jadwal->kapasitas = $kapasitas;
-                $jadwal->sisa_kapasitas = $kapasitas;
-                $jadwal->lokasi = $request->lokasi;
-                $jadwal->jenis_bimbingan = $jenisBimbingan; // Pastikan ini terisi dengan benar
-                $jadwal->has_kuota_limit = $request->has_kuota_limit;
-                $jadwal->jumlah_pendaftar = 0;
-                $jadwal->save();
-
-                // Log setelah menyimpan untuk memastikan
-                Log::info('Jadwal berhasil disimpan:', [
-                    'id' => $jadwal->id,
-                    'jenis_bimbingan_tersimpan' => $jadwal->jenis_bimbingan,
-                    'event_id' => $jadwal->event_id
-                ]);
-
-                if ($jadwal->jenis_bimbingan === 'lainnya') {
-                    Log::info('Verifikasi jenis bimbingan "lainnya" tersimpan', [
-                        'id' => $jadwal->id,
-                        'jenis_bimbingan' => $jadwal->jenis_bimbingan,
-                        'setelah_save' => JadwalBimbingan::find($jadwal->id)->jenis_bimbingan
-                    ]);
-                }
-
-                $verifyJadwal = JadwalBimbingan::find($jadwal->id);
-                Log::info('Verifikasi data tersimpan:', [
-                    'jenis_bimbingan' => $verifyJadwal->jenis_bimbingan
-                ]);
-
-                DB::commit();
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Jadwal berhasil ditambahkan!',
-                    'data' => [
-                        'id' => $createdEvent->id,
-                        'title' => 'Jadwal Bimbingan',
-                        'start' => $start->toIso8601String(),
-                        'end' => $end->toIso8601String(),
-                        'description' => $request->description,
-                        'has_kuota_limit' => $request->has_kuota_limit,
-                        'jenis_bimbingan' => $jenisBimbingan,
-                        'lokasi' => $request->lokasi,
-                        'status' => 'Tersedia',
-                    ]
-                ]);
-            } catch (\Exception $e) {
-                DB::rollBack();
-                throw $e;
-            }
-        } catch (\Exception $e) {
-            Log::error('Error adding event: ' . $e->getMessage(), [
-                'dosen_nip' => Auth::guard('dosen')->user()->nip,
-                'trace' => $e->getTraceAsString()
-            ]);
-
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menambahkan jadwal: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Tidak dapat terhubung ke Google Calendar. Silakan hubungkan ulang.'
+            ], 401);
         }
+
+        // Validasi request
+        $validated = $request->validate([
+            'start' => 'required|date',
+            'end' => 'required|date|after:start',
+            'description' => 'nullable|string',
+            'has_kuota_limit' => 'boolean',
+            'kuota' => 'nullable|numeric|min:1',
+            'jenis_bimbingan' => 'nullable|string|in:skripsi,kp,akademik,konsultasi,mbkm,lainnya',
+            'lokasi' => 'nullable|string|max:255',
+        ]);
+
+        // Validasi jenis bimbingan jika enableJenisBimbingan diaktifkan
+        if ($request->enableJenisBimbingan && empty($request->jenis_bimbingan)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jenis bimbingan harus dipilih jika opsi "Tentukan Jenis Bimbingan" diaktifkan'
+            ], 422);
+        }
+
+        // Parse dates with explicit timezone
+        $start = Carbon::parse($request->start)->setTimezone('Asia/Jakarta');
+        $end = Carbon::parse($request->end)->setTimezone('Asia/Jakarta');
+
+        // ===== TAMBAHAN VALIDASI WAKTU YANG SUDAH LEWAT =====
+        $now = Carbon::now('Asia/Jakarta');
+
+        // Validasi: Waktu mulai tidak boleh di masa lalu
+        if ($start->isPast()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat membuat jadwal di masa lalu. Waktu mulai: ' . 
+                            $start->format('d M Y H:i') . ', Sekarang: ' . $now->format('d M Y H:i')
+            ], 422);
+        }
+
+        // Validasi: Waktu mulai minimal 30 menit dari sekarang (buffer time)
+        $minimumStartTime = $now->copy()->addMinutes(30);
+        if ($start->lt($minimumStartTime)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal harus dibuat minimal 30 menit dari sekarang. ' .
+                            'Waktu tercepat yang dapat dipilih: ' . $minimumStartTime->format('H:i')
+            ], 422);
+        }
+
+        // Validasi: Jika hari yang sama, pastikan tidak bentrok dengan jam kerja yang tersisa
+        if ($start->isSameDay($now)) {
+            // Jika hari yang sama, cek apakah masih dalam jam kerja
+            $endOfWorkDay = $now->copy()->setTime(18, 0, 0);
+            
+            if ($now->gt($endOfWorkDay)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jam kerja hari ini sudah berakhir. Silakan pilih hari lain.'
+                ], 422);
+            }
+            
+            // Pastikan jadwal berakhir sebelum jam kerja selesai
+            if ($end->gt($endOfWorkDay)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Jadwal tidak boleh melewati jam kerja (sampai 18:00). ' .
+                                'Waktu selesai yang dipilih: ' . $end->format('H:i')
+                ], 422);
+            }
+        }
+        // ===== AKHIR VALIDASI WAKTU YANG SUDAH LEWAT =====
+
+        $dosen = Auth::guard('dosen')->user();
+
+        $existingSchedules = JadwalBimbingan::where('nip', $dosen->nip)
+            ->where(function ($query) use ($start, $end) {
+                // Jadwal bentrok jika:
+                // 1. Jadwal baru mulai di antara jadwal yang sudah ada
+                // 2. Jadwal baru selesai di antara jadwal yang sudah ada
+                // 3. Jadwal baru melingkupi jadwal yang sudah ada
+                $query->where(function ($q) use ($start, $end) {
+                    $q->where('waktu_mulai', '<=', $start)
+                        ->where('waktu_selesai', '>', $start);
+                })->orWhere(function ($q) use ($start, $end) {
+                    $q->where('waktu_mulai', '<', $end)
+                        ->where('waktu_selesai', '>=', $end);
+                })->orWhere(function ($q) use ($start, $end) {
+                    $q->where('waktu_mulai', '>=', $start)
+                        ->where('waktu_selesai', '<=', $end);
+                });
+            })
+            ->where('status', '!=', JadwalBimbingan::STATUS_DIBATALKAN)
+            ->first();
+
+        if ($existingSchedules) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jadwal bentrok dengan jadwal yang sudah ada pada waktu ' .
+                    Carbon::parse($existingSchedules->waktu_mulai)->format('H:i') . ' - ' .
+                    Carbon::parse($existingSchedules->waktu_selesai)->format('H:i')
+            ], 422);
+        }
+
+        // Perbaiki logika kapasitas
+        $kapasitas = 0; // Default untuk kuota tidak terbatas
+        if ($request->has_kuota_limit) {
+            $kapasitas = intval($request->kuota ?? 1);
+        }
+
+        Log::info('Kapasitas yang akan digunakan:', [
+            'has_kuota_limit' => $request->has_kuota_limit,
+            'kuota_request' => $request->kuota,
+            'kapasitas_final' => $kapasitas
+        ]);
+
+        // Secara eksplisit tentukan nilai jenis_bimbingan
+        $jenisBimbingan = null;
+        if ($request->enableJenisBimbingan === true || $request->enableJenisBimbingan === "true" || $request->enableJenisBimbingan === 1) {
+            $jenisBimbingan = $request->jenis_bimbingan;
+            Log::info("Checkbox enableJenisBimbingan aktif, menggunakan nilai:", ['jenis_bimbingan' => $jenisBimbingan]);
+        } else {
+            Log::info("Checkbox enableJenisBimbingan tidak aktif, jenis_bimbingan akan null");
+        }
+
+        if ($jenisBimbingan === 'lainnya') {
+            Log::info('Mencoba menyimpan jenis bimbingan "lainnya"', [
+                'jenisBimbingan' => $jenisBimbingan,
+                'request_data' => $request->all()
+            ]);
+        }
+
+        // Tambahkan debug sebelum menyimpan
+        Log::info('Nilai yang akan disimpan ke database:', [
+            'enableJenisBimbingan' => $request->enableJenisBimbingan,
+            'jenis_bimbingan_dari_request' => $request->jenis_bimbingan,
+            'jenis_bimbingan_final' => $jenisBimbingan
+        ]);
+
+        // Buat event di Google Calendar
+        $description =
+            "Dosen: {$dosen->nama}\n" .
+            "NIP: {$dosen->nip}\n" .
+            "Email: {$dosen->email}\n";
+
+        // Tambahkan informasi kuota
+        if ($request->has_kuota_limit) {
+            $description .= "Kuota: Terbatas ({$kapasitas} mahasiswa)\n";
+        } else {
+            $description .= "Kuota: Tidak terbatas\n";
+        }
+
+        // Tambahkan informasi jenis bimbingan jika ada
+        if ($jenisBimbingan) {
+            $jenisBimbinganText = match ($jenisBimbingan) {
+                'skripsi' => 'Bimbingan Skripsi',
+                'kp' => 'Bimbingan KP',
+                'akademik' => 'Bimbingan Akademik',
+                'konsultasi' => 'Konsultasi Pribadi',
+                'mbkm' => 'Bimbingan MBKM',
+                'lainnya' => 'Lainnya',
+                default => 'Bimbingan'
+            };
+            $description .= "Jenis: {$jenisBimbinganText}\n";
+        }
+
+        // Tambahkan lokasi jika ada
+        if ($request->lokasi) {
+            $description .= "Lokasi: {$request->lokasi}\n";
+        }
+
+        // Tambahkan catatan jika ada
+        if ($request->description) {
+            $description .= "Catatan: {$request->description}";
+        }
+
+        $eventData = [
+            'summary' => 'Jadwal Bimbingan',
+            'description' => $description,
+            'start' => $start,
+            'end' => $end,
+            'reminders' => [
+                'useDefault' => false,
+                'overrides' => [
+                    ['method' => 'email', 'minutes' => 24 * 60],
+                    ['method' => 'popup', 'minutes' => 30],
+                    ['method' => 'popup', 'minutes' => 5],
+                ],
+            ],
+        ];
+
+        DB::beginTransaction();
+        try {
+            // Buat event di Google Calendar
+            $createdEvent = $this->googleCalendarController->createEvent($eventData);
+
+            // Simpan ke database dengan pendekatan yang berbeda
+            $jadwal = new JadwalBimbingan();
+            $jadwal->event_id = $createdEvent->id;
+            $jadwal->nip = $dosen->nip;
+            $jadwal->waktu_mulai = $start;
+            $jadwal->waktu_selesai = $end;
+            $jadwal->catatan = $request->description;
+            $jadwal->status = JadwalBimbingan::STATUS_TERSEDIA;
+            $jadwal->kapasitas = $kapasitas;
+            $jadwal->sisa_kapasitas = $kapasitas;
+            $jadwal->lokasi = $request->lokasi;
+            $jadwal->jenis_bimbingan = $jenisBimbingan; // Pastikan ini terisi dengan benar
+            $jadwal->has_kuota_limit = $request->has_kuota_limit;
+            $jadwal->jumlah_pendaftar = 0;
+            $jadwal->save();
+
+            // Log setelah menyimpan untuk memastikan
+            Log::info('Jadwal berhasil disimpan:', [
+                'id' => $jadwal->id,
+                'jenis_bimbingan_tersimpan' => $jadwal->jenis_bimbingan,
+                'event_id' => $jadwal->event_id
+            ]);
+
+            if ($jadwal->jenis_bimbingan === 'lainnya') {
+                Log::info('Verifikasi jenis bimbingan "lainnya" tersimpan', [
+                    'id' => $jadwal->id,
+                    'jenis_bimbingan' => $jadwal->jenis_bimbingan,
+                    'setelah_save' => JadwalBimbingan::find($jadwal->id)->jenis_bimbingan
+                ]);
+            }
+
+            $verifyJadwal = JadwalBimbingan::find($jadwal->id);
+            Log::info('Verifikasi data tersimpan:', [
+                'jenis_bimbingan' => $verifyJadwal->jenis_bimbingan
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil ditambahkan!',
+                'data' => [
+                    'id' => $createdEvent->id,
+                    'title' => 'Jadwal Bimbingan',
+                    'start' => $start->toIso8601String(),
+                    'end' => $end->toIso8601String(),
+                    'description' => $request->description,
+                    'has_kuota_limit' => $request->has_kuota_limit,
+                    'jenis_bimbingan' => $jenisBimbingan,
+                    'lokasi' => $request->lokasi,
+                    'status' => 'Tersedia',
+                ]
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    } catch (\Exception $e) {
+        Log::error('Error adding event: ' . $e->getMessage(), [
+            'dosen_nip' => Auth::guard('dosen')->user()->nip,
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menambahkan jadwal: ' . $e->getMessage()
+        ], 500);
     }
+}
     /**
      * Menghapus jadwal bimbingan
      * 

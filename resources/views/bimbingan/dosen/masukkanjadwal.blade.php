@@ -934,74 +934,104 @@
         }
 
         /* Compact SweetAlert Popup Styles */
-.compact-swal-popup {
-    border-radius: 12px !important;
-    padding: 0 !important;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        .compact-swal-popup {
+            border-radius: 12px !important;
+            padding: 0 !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .compact-swal-title {
+            padding: 16px 16px 0 16px !important;
+            margin-bottom: 0 !important;
+        }
+
+        .compact-swal-button {
+            border-radius: 6px !important;
+            padding: 8px 16px !important;
+            font-weight: 500 !important;
+            font-size: 13px !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .compact-swal-button:hover {
+            transform: translateY(-1px) !important;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        .swal2-html-container {
+            padding: 16px !important;
+            margin: 0 !important;
+        }
+
+        /* Fix untuk jarak button */
+        .compact-swal-actions,
+        .swal2-actions {
+            padding: 12px 24px 16px 24px !important; /* Kurangi padding untuk jarak yang lebih dekat */
+            margin: 0 !important;
+        }
+
+        /* Animation for popup appearance */
+        .swal2-show {
+            animation: swal2-show 0.2s ease-out !important;
+        }
+
+        @keyframes swal2-show {
+            0% {
+                transform: scale(0.95);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Hover effect for info rows */
+        .info-row {
+            transition: all 0.2s ease;
+        }
+
+        .info-row:hover {
+            transform: translateX(2px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 480px) {
+            .compact-swal-popup {
+                width: 95% !important;
+                margin: 0 auto !important;
+            }
+        }
+
+        /* style modal masukkan jadwal */
+        .modal-footer {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 20px 24px !important;
 }
 
-.compact-swal-title {
-    padding: 16px 16px 0 16px !important;
-    margin-bottom: 0 !important;
-}
 
-.compact-swal-button {
-    border-radius: 6px !important;
-    padding: 8px 16px !important;
+.modal-footer .btn {
+    border-radius: 15px !important;
+    padding: 10px 24px !important;
     font-weight: 500 !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
+    min-width: 120px !important;
     transition: all 0.2s ease !important;
+    border: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
-
-.compact-swal-button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+.modal-footer .btn:active {
+    transform: translateY(0px) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
-
-.swal2-html-container {
-    padding: 16px !important;
-    margin: 0 !important;
-}
-
-/* Fix untuk jarak button */
-.compact-swal-actions,
-.swal2-actions {
-    padding: 12px 24px 16px 24px !important; /* Kurangi padding untuk jarak yang lebih dekat */
-    margin: 0 !important;
-}
-
-/* Animation for popup appearance */
-.swal2-show {
-    animation: swal2-show 0.2s ease-out !important;
-}
-
-@keyframes swal2-show {
-    0% {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* Hover effect for info rows */
-.info-row {
-    transition: all 0.2s ease;
-}
-
-.info-row:hover {
-    transform: translateX(2px);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-/* Responsive adjustments */
-@media (max-width: 480px) {
-    .compact-swal-popup {
-        width: 95% !important;
-        margin: 0 auto !important;
-    }
+.modal-footer .btn-gradient:focus,
+.modal-footer .btn-primary:focus {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+    outline: none !important;
 }
     </style>
 @endpush
@@ -1154,6 +1184,103 @@
 
     let calendar;
     let selectedDate = null;
+
+    function isTimeInPast(selectedDate, timeString) {
+        if (!timeString) return false;
+        
+        const [hour, minute] = timeString.split(':');
+        const selectedDateTime = moment(selectedDate)
+            .hour(parseInt(hour))
+            .minute(parseInt(minute))
+            .second(0);
+        
+        const now = moment();
+        return selectedDateTime.isBefore(now);
+    }
+
+    // Function untuk mendapatkan waktu minimum yang bisa dipilih
+    function getMinimumSelectableTime(selectedDate) {
+        const now = moment();
+        const selectedMoment = moment(selectedDate);
+        
+        // Jika hari yang sama
+        if (selectedMoment.isSame(now, 'day')) {
+            // Tambah 30 menit buffer dari waktu sekarang
+            const minimumTime = now.clone().add(30, 'minutes');
+            
+            // Bulatkan ke 30 menit terdekat
+            const minutes = minimumTime.minute();
+            if (minutes < 30) {
+                minimumTime.minute(30);
+            } else {
+                minimumTime.add(1, 'hour').minute(0);
+            }
+            
+            // Pastikan tidak melebihi jam kerja (18:00)
+            const endOfWork = now.clone().hour(18).minute(0).second(0);
+            if (minimumTime.isAfter(endOfWork)) {
+                return null; // Tidak bisa buat jadwal hari ini
+            }
+            
+            return minimumTime.format('HH:mm');
+        }
+        
+        // Jika hari berbeda, mulai dari jam kerja normal
+        return '08:00';
+    }
+
+    // Function untuk validasi komprehensif waktu
+    function validateSelectedTime(selectedDate, startTime, endTime) {
+        const now = moment();
+        const selectedMoment = moment(selectedDate);
+        
+        // Cek apakah tanggal di masa lalu
+        if (selectedMoment.isBefore(now, 'day')) {
+            return {
+                valid: false,
+                message: 'Tidak dapat membuat jadwal di hari yang sudah lewat'
+            };
+        }
+        
+        // Jika hari yang sama, cek jam kerja
+        if (selectedMoment.isSame(now, 'day')) {
+            const endOfWork = now.clone().hour(18).minute(0);
+            
+            if (now.isAfter(endOfWork)) {
+                return {
+                    valid: false,
+                    message: 'Jam kerja hari ini sudah berakhir'
+                };
+            }
+        }
+        
+        // Validasi waktu mulai
+        if (startTime && isTimeInPast(selectedDate, startTime)) {
+            return {
+                valid: false,
+                message: 'Waktu mulai tidak boleh di masa lalu'
+            };
+        }
+        
+        // Validasi buffer 30 menit untuk hari ini
+        if (startTime && selectedMoment.isSame(now, 'day')) {
+            const [hour, minute] = startTime.split(':');
+            const startDateTime = now.clone()
+                .hour(parseInt(hour))
+                .minute(parseInt(minute));
+            
+            const minimumTime = now.clone().add(30, 'minutes');
+            
+            if (startDateTime.isBefore(minimumTime)) {
+                return {
+                    valid: false,
+                    message: `Jadwal harus dibuat minimal 30 menit dari sekarang (${minimumTime.format('HH:mm')})`
+                };
+            }
+        }
+        
+        return { valid: true };
+    }
 
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) {
@@ -1452,7 +1579,7 @@ const requestData = {
     }
 },
         
-        dateClick: function(info) {
+dateClick: function(info) {
             const hari = info.date.getDay();
             if (hari === 0 || hari === 6) {
                 Swal.fire({
@@ -1464,7 +1591,59 @@ const requestData = {
                 return;
             }
 
+            // ===== VALIDASI BARU: CEK WAKTU YANG SUDAH LEWAT =====
+            const now = moment();
+            const selectedMoment = moment(info.date);
+            
+            // Cek apakah tanggal di masa lalu
+            if (selectedMoment.isBefore(now, 'day')) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Waktu Sudah Lewat',
+                    text: 'Tidak dapat membuat jadwal di hari yang sudah lewat',
+                    confirmButtonColor: '#1a73e8'
+                });
+                return;
+            }
+            
+            // Jika hari yang sama, cek apakah jam kerja masih tersisa
+            if (selectedMoment.isSame(now, 'day')) {
+                const endOfWork = now.clone().hour(18).minute(0);
+                const minimumStartTime = now.clone().add(30, 'minutes');
+                
+                if (now.isAfter(endOfWork)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Jam Kerja Berakhir',
+                        text: 'Jam kerja hari ini sudah berakhir. Silakan pilih hari lain.',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                    return;
+                }
+                
+                if (minimumStartTime.isAfter(endOfWork)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Waktu Tidak Cukup',
+                        text: 'Waktu tersisa hari ini tidak cukup untuk membuat jadwal (minimal 30 menit + durasi bimbingan)',
+                        confirmButtonColor: '#1a73e8'
+                    });
+                    return;
+                }
+            }
+
             selectedDate = info.date;
+            
+            // Set waktu minimum jika hari yang sama
+            const minimumTime = getMinimumSelectableTime(info.date);
+            if (selectedMoment.isSame(now, 'day') && minimumTime) {
+                document.getElementById('startTime').setAttribute('min', minimumTime);
+                document.getElementById('endTime').setAttribute('min', minimumTime);
+            } else {
+                document.getElementById('startTime').removeAttribute('min');
+                document.getElementById('endTime').removeAttribute('min');
+            }
+            
             const modal = new bootstrap.Modal(document.getElementById('eventModal'));
             modal.show();
         },
@@ -2042,11 +2221,17 @@ events: function(fetchInfo, successCallback, failureCallback) {
 
     // Reset form when modal is shown
     document.getElementById('eventModal')?.addEventListener('show.bs.modal', function () {
-        // Reset form fields
-        document.getElementById('startTime').value = '';
-        document.getElementById('endTime').value = '';
-        document.getElementById('eventDescription').value = '';
-        document.getElementById('timeValidationFeedback').innerHTML = '';
+        // Reset form fields - DENGAN SAFETY CHECK
+        const startTime = document.getElementById('startTime');
+        const endTime = document.getElementById('endTime');
+        const eventDescription = document.getElementById('eventDescription');
+        const timeValidationFeedback = document.getElementById('timeValidationFeedback');
+        const saveEvent = document.getElementById('saveEvent');
+        
+        if (startTime) startTime.value = '';
+        if (endTime) endTime.value = '';
+        if (eventDescription) eventDescription.value = '';
+        if (timeValidationFeedback) timeValidationFeedback.innerHTML = '';
         
         // Reset toggle switches
         const enableKuota = document.getElementById('enableKuota');
@@ -2073,12 +2258,19 @@ events: function(fetchInfo, successCallback, failureCallback) {
         initializeFormLabels();
         
         // Enable save button
-        document.getElementById('saveEvent').disabled = false;
+        if (saveEvent) saveEvent.disabled = false;
     });
 
     // Add time validation events
     document.getElementById('startTime')?.addEventListener('change', validateTimes);
     document.getElementById('endTime')?.addEventListener('change', validateTimes);
+    document.getElementById('startTime')?.addEventListener('input', function() {
+        setTimeout(validateTimes, 100); // Delay kecil untuk performa
+    });
+
+    document.getElementById('endTime')?.addEventListener('input', function() {
+        setTimeout(validateTimes, 100); // Delay kecil untuk performa
+    });
 
     // Function to validate time inputs
     function validateTimes() {
@@ -2090,6 +2282,16 @@ events: function(fetchInfo, successCallback, failureCallback) {
         // Reset feedback
         feedbackEl.innerHTML = '';
         saveButton.disabled = false;
+
+        if (!selectedDate) return;
+
+        // ===== VALIDASI BARU: CEK WAKTU YANG SUDAH LEWAT =====
+        const timeValidation = validateSelectedTime(selectedDate, startTime, endTime);
+        if (!timeValidation.valid) {
+            feedbackEl.innerHTML = `<div class="text-danger small mt-2">${timeValidation.message}</div>`;
+            saveButton.disabled = true;
+            return;
+        }
 
         if (startTime && endTime) {
             const [startHour, startMinute] = startTime.split(':');
@@ -2112,6 +2314,20 @@ events: function(fetchInfo, successCallback, failureCallback) {
             } else if (parseInt(startHour) < 8 || parseInt(startHour) >= 18 || 
                     parseInt(endHour) < 8 || parseInt(endHour) > 18) {
                 errorMessage = 'Jadwal harus dalam jam kerja (08:00 - 18:00)';
+            }
+
+            // ===== VALIDASI TAMBAHAN: CEK WAKTU SELESAI DI HARI YANG SAMA =====
+            const selectedMoment = moment(selectedDate);
+            const now = moment();
+            
+            if (selectedMoment.isSame(now, 'day')) {
+                const endDateTime = now.clone()
+                    .hour(parseInt(endHour))
+                    .minute(parseInt(endMinute));
+                
+                if (endDateTime.isBefore(now)) {
+                    errorMessage = 'Waktu selesai tidak boleh di masa lalu';
+                }
             }
 
             if (errorMessage) {
